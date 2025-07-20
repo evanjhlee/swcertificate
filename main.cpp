@@ -3,102 +3,82 @@
 #endif
 
 #include <stdio.h>
-    
-extern void init(int);
-extern void addRect(int, int, int, int, int);
-extern void selectAndMove(int, int, int, int);
-extern int moveFront(int);
-extern int selectAndErase(int, int);
-extern int check(int, int);
 
-#define CMD_INIT (100)
-#define CMD_ADD  (200)
-#define CMD_SELECT_AND_MOVE  (300)
-#define CMD_MOVE_FRONT  (400)
-#define CMD_SELECT_AND_ERASE (500)
-#define CMD_CHECK (600)
+#define MAX_M 50
+#define MAX_K 1000
 
-static int N;
+#define CMD_INIT        100
+#define CMD_ADD			200
+#define CMD_REMOVE    	300
+#define CMD_TRANSPORT   400
+
+extern void init(int N, int M, int K, int mID[], int aStorage[], int bStorage[], char mAttr[][MAX_M]);
+extern void add(int mID, int aStorage, int bStorage, char mAttr[]);
+extern void remove(int mID);
+extern int transport(int sStorage, int eStorage, char mAttr[]);
 
 static bool run()
 {
-    int query_num;
-    scanf("%d", &query_num);
+	int Q, ret, ans;
+	int N, M, K, mID, aStorage, bStorage, sStorage, eStorage;
+	int mIDArr[MAX_K], aStorageArr[MAX_K], bStorageArr[MAX_K];
+	char buf[MAX_M + 1], mAttr[MAX_M], mAttrArr[MAX_K][MAX_M];
 
-    int ret, ans;
-    bool ok = false;
+	scanf("%d", &Q);
+	bool okay = false;
 
-    for (int q = 0; q < query_num; q++)
-    {
-        int query, mID, y1, x1, y2, x2, h, w;
-        scanf("%d", &query);
+	for (int q = 0; q < Q; ++q)
+	{
+		int cmd;
+		scanf("%d", &cmd);
+		switch (cmd) {
+		case CMD_INIT:
+			scanf("%d %d %d", &N, &M, &K);
+			for (int i = 0; i < K; ++i) {
+				scanf("%d %d %d %s", &mIDArr[i], &aStorageArr[i], &bStorageArr[i], buf);
+				for (int j = 0; j < M; ++j) mAttrArr[i][j] = buf[j];
+			}
+			init(N, M, K, mIDArr, aStorageArr, bStorageArr, mAttrArr);
+			okay = true;
+			break;
+		case CMD_ADD:
+			scanf("%d %d %d %s", &mID, &aStorage, &bStorage, buf);
+			for (int i = 0; i < M; ++i) mAttr[i] = buf[i];
+			add(mID, aStorage, bStorage, mAttr);
+			break;
+		case CMD_REMOVE:
+			scanf("%d", &mID);
+			remove(mID);
+			break;
+		case CMD_TRANSPORT:
+			scanf("%d %d %d %s", &sStorage, &eStorage, &ans, buf);
+			for (int i = 0; i < M; ++i) mAttr[i] = buf[i];
+			ret = transport(sStorage, eStorage, mAttr);
+			if (ans != ret)
+				okay = false;
+			break;
+		default:
+			okay = false;
+			break;
+		}
+	}
 
-        if (query == CMD_INIT)
-        {
-            scanf("%d", &N);
-            init(N);
-            ok = true;
-        }
-        else if (query == CMD_ADD)
-        {
-            scanf("%d%d%d%d%d", &mID, &y1, &x1, &h, &w);
-
-            addRect(mID, y1, x1, h, w);
-        }
-        else if (query == CMD_SELECT_AND_MOVE)
-        {
-            scanf("%d%d%d%d", &y1, &x1, &y2, &x2);
-            selectAndMove(y1, x1, y2, x2);
-        }
-        else if (query == CMD_MOVE_FRONT)
-        {
-            scanf("%d", &mID);
-            ret = moveFront(mID);
-            scanf("%d", &ans);
-
-            if (ret != ans) {
-				printf("=========================CMD_MOVE_FRONT failed: expected %d, got %d\n", ans, ret);
-                ok = false;
-            }
-
-        }
-        else if (query == CMD_SELECT_AND_ERASE)
-        {
-            scanf("%d%d", &y1, &x1);
-            ret = selectAndErase(y1, x1);
-            scanf("%d", &ans);
-
-            if (ret != ans) {
-                printf("=========================CMD_SELECT_AND_ERASE failed: expected %d, got %d\n", ans, ret);
-                ok = false;
-            }
-        }
-        else if (query == CMD_CHECK)
-        {
-            scanf("%d%d", &y1, &x1);
-            ret = check(y1, x1);
-            scanf("%d", &ans);
-
-            if (ret != ans) {
-                printf("=========================CMD_CHECK failed: expected %d, got %d\n", ans, ret);
-                ok = false;
-            }
-        }
-    }
-    return ok;
+	return okay;
 }
 
 int main()
 {
-    setbuf(stdout, NULL);
-         freopen("sample_input.txt", "r", stdin);
-    int T, MARK;
-    scanf("%d %d", &T, &MARK);
+	setbuf(stdout, NULL);
+	 freopen("sample_input.txt", "r", stdin);
 
-    for (int tc = 1; tc <= T; tc++)
-    {
-        int score = run() ? MARK : 0;
-        printf("#%d %d\n", tc, score);
-    }
-    return 0;
+	int TC, MARK;
+
+	scanf("%d %d", &TC, &MARK);
+	for (int tc = 1; tc <= TC; ++tc)
+	{
+		int score = run() ? MARK : 0;
+		printf("#%d %d\n", tc, score);
+	}
+
+	return 0;
 }

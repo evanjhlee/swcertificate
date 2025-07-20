@@ -1,33 +1,215 @@
-﻿sdfsadf
-sdfsdf
-sdfdsf
+﻿#if 1
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <unordered_map>
+#include <string>
+#include <cstring>
+using namespace std;
 
-sdfsd
- 
-sdfsadfs 
-sdf
-as 
-fasdsfsdafsa
-f
-sadfsad
-dfa
-sdf
-as
+#define INF 1e9
+#define MAX_N 105
+#define MAX_M 55
 
+struct Pipe {
+	int to;
+	string attr;
+};
 
-#include<string>
-#include<vector>
-#include<iostream>
-#include<unordered_map>
-#include<queue>
-#include<set>
-#include<list>
-using namespace std; 
-#define log(...) //do { 	fprintf(stderr, __VA_ARGS__); } while (0)
+int N, M;
+vector<Pipe> graph[MAX_N];
+unordered_map<int, pair<int, int>> id_map;
+
+void init(int n, int m, int k, int mID[], int a[], int b[], char mAttr[][MAX_M]) {
+	N = n; M = m;
+	for (int i = 0; i < N + 1; ++i) graph[i].clear();
+	id_map.clear();
+	for (int i = 0; i < k; ++i) {
+		string attr(mAttr[i], mAttr[i] + M);
+		graph[a[i]].push_back({ b[i], attr });
+		graph[b[i]].push_back({ a[i], attr });
+		id_map[mID[i]] = { a[i], b[i] };
+	}
+}
+
+void add(int mID, int a, int b, char mAttr[]) {
+	string attr(mAttr, mAttr + M);
+	graph[a].push_back({ b, attr });
+	graph[b].push_back({ a, attr });
+	id_map[mID] = { a, b };
+}
+
+void remove(int mID) {
+	auto [a, b] = id_map[mID];
+	auto erase_edge = [&](int from, int to) {
+		auto& edges = graph[from];
+		for (auto it = edges.begin(); it != edges.end(); ++it) {
+			if (it->to == to) { edges.erase(it); break; }
+		}
+		};
+	erase_edge(a, b);
+	erase_edge(b, a);
+	id_map.erase(mID);
+}
+
+int calc_cost(const string& attr1, const string& attr2) {
+	int cost = 0;
+	for (int i = 0; i < M; ++i) {
+		if (attr1[i] == 'D' || attr2[i] == 'D') cost++;
+		else if (attr1[i] != attr2[i]) cost++;
+	}
+	return cost;
+}
+
+int dist[MAX_N][2];
+int transport(int start, int end, char mAttr[]) {
+	string energy_attr(mAttr, mAttr + M);
+	for (int i = 0; i <= N; ++i) dist[i][0] = dist[i][1] = INF;
+	priority_queue<tuple<int, int, bool>, vector<tuple<int, int, bool>>, greater<>> pq;
+	pq.push({ 0, start, false });
+	dist[start][0] = 0;
+
+	while (!pq.empty()) {
+		auto [cost, u, changed] = pq.top(); pq.pop();
+		if (u == end) return cost;
+
+		for (auto& pipe : graph[u]) {
+			int v = pipe.to;
+			int new_cost;
+
+			// 유지
+			new_cost = cost + calc_cost(pipe.attr, energy_attr);
+			if (dist[v][changed] > new_cost) {
+				dist[v][changed] = new_cost;
+				pq.push({ new_cost, v, changed });
+			}
+
+			// 변경 (단 한 번만)
+			if (!changed) {
+				new_cost = cost + 1; // 변경 비용 1
+				new_cost += calc_cost(pipe.attr, pipe.attr);
+				if (dist[v][1] > new_cost) {
+					dist[v][1] = new_cost;
+					pq.push({ new_cost, v, true });
+				}
+			}
+		}
+	}
+
+	return -1;
+}
+
+#elif 0
+
+#include <string>
+#include <vector>
+#include <iostream>
+#include <unordered_map>
+#include <queue>
+using namespace std;
+#define log(...) do { fprintf(stderr, __VA_ARGS__); } while (0)
 #define ff(i, a, b) for (int i = (a); i < (b); ++i)
 #define pii pair<int, int>
+#define INF 987654321
 
-#if 1
+#define MAX_M 50
+const int NM = 105;
+
+unordered_map<int, pii> id2ndx;
+unordered_map<int, string> a[NM];
+int N, M, K;
+
+void add(int mID, int aStorage, int bStorage, char mAttr[]) {
+	id2ndx[mID] = { aStorage, bStorage };
+	a[aStorage][bStorage] = string(mAttr, mAttr + M);
+	a[bStorage][aStorage] = string(mAttr, mAttr + M);
+}
+
+void init(int N_, int M_, int K_, int mID[], int aStorage[], int bStorage[], char mAttr[][MAX_M]) {
+	N = N_; M = M_; K = K_;
+	id2ndx.clear();
+	ff(i, 0, N + 1) a[i].clear();
+	ff(i, 0, K) add(mID[i], aStorage[i], bStorage[i], mAttr[i]);
+}
+
+void remove(int mID) {
+	auto temp = id2ndx[mID];
+	int s = temp.first, e = temp.second;
+	a[s].erase(e);
+	a[e].erase(s);
+}
+
+int caluate(const string& attr1, const string& attr2) {
+	int cost = 0;
+	for (int i = 0; i < M; ++i) {
+		if (attr1[i] == 'D' || attr2[i] == 'D') {
+			cost++; // D가 하나라도 있으면 무조건 1
+		}
+		else if (attr1[i] != attr2[i]) {
+			cost++; // 다를 때만
+		}
+	}
+	return cost;
+}
+
+
+struct State {
+	int node, cost;
+	string attr;
+	bool operator<(const State& other) const {
+		return cost > other.cost;
+	}
+};
+
+unordered_map<string, int> dist[NM];
+
+int dijestra(int sStorage, int eStorage, char mAttr[]) {
+	string startAttr(mAttr, mAttr + M);
+	ff(i, 0, NM) dist[i].clear();
+	priority_queue<State> pq;
+	pq.push({ sStorage, 0, startAttr });
+	dist[sStorage][startAttr] = 0;
+
+	while (!pq.empty()) {
+		auto cur = pq.top(); pq.pop();
+		int node = cur.node, cost = cur.cost;
+		string attr = cur.attr;
+
+		if (node == eStorage) return cost;
+		if (dist[node][attr] < cost) continue;
+
+		for (auto& nex : a[node]) {
+			int nextNode = nex.first;
+			string edgeAttr = nex.second;
+
+			int costSame = caluate(attr, edgeAttr);
+			if (!dist[nextNode].count(attr) || dist[nextNode][attr] > cost + costSame) {
+				dist[nextNode][attr] = cost + costSame;
+				pq.push({ nextNode, cost + costSame, attr });
+			}
+
+			// try changing attribute
+			string newAttr = edgeAttr;
+			int costChange = 1 + caluate(newAttr, edgeAttr);
+			if (!dist[nextNode].count(newAttr) || dist[nextNode][newAttr] > cost + costChange) {
+				dist[nextNode][newAttr] = cost + costChange;
+				pq.push({ nextNode, cost + costChange, newAttr });
+			}
+		}
+	}
+	return -1;
+}
+
+int transport(int sStorage, int eStorage, char mAttr[]) {
+	int ret = -1;
+
+	ret = dijestra(sStorage, eStorage, mAttr);
+	string str(mAttr, mAttr + M);
+	log("%-8s(%d, %d, %s)\t\tret=%d\n", __func__, sStorage, eStorage, str.c_str(), ret);
+	return ret;
+}
+
+#elif 0
 /*
 2. 각 테스트 케이스에서 addRect() 로부터 전달되는 mID 값은 1부터 시작하며 1씩 증가한다.
 3. 각 테스트 케이스에서 addRect() 의 호출 횟수는 최대 10,000 회 이다.
