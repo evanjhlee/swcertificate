@@ -9,11 +9,170 @@
 #include <set>
 using namespace std;
 #define log(...) do { fprintf(stderr, __VA_ARGS__); } while (0)
-#define ff(i, a, b) for (int i = (a); i < (b); ++i)
+#define rint register int
+#define ff(i, a, b) for (rint i = (a); i < (b); ++i)
 #define pii pair<int, int>
 #define INF 987654321
 
 #if 1  
+const int NM = 4'000 + 5; // 최대 자료 개수
+const int BS = 100;
+const int BC = 40; // 블록 크기
+vector<int> b[BC][BC]; // b[i][j] : 블록 (i, j)의 자료 개수
+struct Node { int id, x, y, c; } node[BC];
+unordered_map<int, int> id2ndx; int ndx;// mID -> idx
+/*
+2. 각 테스트 케이스에서 addSample() 함수의 호출 횟수는 20, 000 이하이다.
+3. 각 테스트 케이스에서 deleteSample() 함수의 호출 횟수는 1, 000 이하이다.
+4. 각 테스트 케이스에서 predict() 함수의 호출 횟수는 10, 000 이하이다.
+5. 임의 위치에 있는 크기가 100 * 100인 정사각형 안에 있는 자료의 개수는 최대 500이다.
+*/
+void init(int K, int L) {
+	ndx = 0; id2ndx.clear();
+	memset(b, 0, sizeof(b));
+}
+
+void addSample(int mID, int mX, int mY, int mC) {	
+	id2ndx[mID] = ++ndx; 
+	node[ndx] = { mID, mX, mY, mC };
+	b[mX / BS][mY / BS].push_back(ndx); // 해당 블록에 자료 추가
+}
+void deleteSample(int mID) {
+	int idx = id2ndx[mID];
+	int bx = node[idx].x / BS;
+	int by = node[idx].y / BS;
+	auto& v = b[bx][by];
+	b[bx][by].erase(remove(b[bx][by].begin(), b[bx][by].end(), idx), b[bx][by].end());
+}
+int dx[9] = { -1, -1, -1, 0, 0, 1, 1, 1, 0 };
+int dy[9] = { -1, 0, 1, -1, 1, -1, 0, 1, 0 };
+int predict(int mX, int mY) {
+	//	Returns   점 (mX, mY)에 자료가 있을 경우 추정된 범주 값. 이상치인 경우 -1.*/
+	
+	vector<int> v1, v2, v3;
+
+	// v1에 v2 + v3 합치기 코드 보여줘
+
+
+
+	
+	int bx = mX / BS, by = mY / BS;
+	for (rint i = max(0, bx - 1); i < min(bx + 1, BC); ++i) {
+		for (rint j = max(0, by - 1); j < min(by + 1, BC); ++j) {
+			vector<int> v = b[i][j];
+		}
+	}
+}
+#elif 0
+const int NM = 500 + 5;
+const int BM = 300 + 5; // 블록 크기
+
+int infectedTime[NM];
+struct Edge {
+	int fcity, tcity, time, cost;
+};
+unordered_map<int, Edge> a[NM]; // 인접 리스트
+
+struct State {
+	int time, battery, city;
+	bool operator<(const State& other) const {
+		return time > other.time; // 최소 힙
+	}
+};
+int allVisit = 0; // 모든 도시 방문 여부
+int mCapacity[NM]; // 각 도시의 배터리 용량
+void multiDjikstra(int M, int mCity[]) {
+	fill(&infectedTime[0], &infectedTime[0] + NM * BM, INF);
+	priority_queue<State> pq;
+
+	ff(i,0, M) {
+		infectedTime[mCity[i]] = 0; // 초기 감염 시간
+		pq.push({ 0, mCapacity[i], mCity[i]});
+	}
+	while(!pq.empty()) {
+		auto cur = pq.top(); pq.pop();
+		int u = cur.city;
+		int ut = cur.time;
+		int ub = cur.battery;
+
+		if (infectedTime[u] < ut) continue;
+
+		if (allVisit && 1 << M - 1) {return; }
+
+		for(auto &i: a[u]){
+			int v = i.second.to;
+			int vt = i.second.time + ut; // 다음 시간
+			int vc = i.second.ba
+
+
+			if (infectedTime[v] > vt) {
+				infectedTime[v] = vt;
+				pq.push({ vt, v });
+			}
+		}
+	}
+}
+int dist[NM][BM]; // dist[도시][블록] : 도시에서 블록까지의 최소 시간
+void Djikstra(int s, int e) {
+	fill(&dist[0][0], &dist[0][0] + NM * BM, INF);
+	priority_queue<PQInfo> pq;	// 최소 힙
+
+	while (!pq.empty()) {
+		int u = pq.top().city;
+		int ut = pq.top().time;
+
+
+
+		for (auto & i : a[u]) {
+			int v;
+			int vt;
+
+			int nt = ct + vt;
+
+			
+
+			dist[v][0] = t; // 초기화
+			pq.push({ t, v });
+		}
+	}
+}
+
+#elif 0
+struct Edge {
+	int c1, c2, pr, ti;
+};
+int visited[100];
+vector<int> a[100];	 
+int N = 100;
+void bfs(int start[]) {
+	
+	memset(visited, 0, sizeof(visited));	
+	queue<pii> q;
+
+	ff(i, 0, N) {
+		visited[start[i]] = 1;
+		q.push({ start[i], 0 });
+	}
+
+	while (!q.empty()) {
+		int u = q.front().first; 
+		int cd = q.front().second; 		
+		q.pop();
+		
+		for (auto& i : a[u]) {
+			int v = i;
+			
+			if (visited[i] == 0) {
+				visited[i] = 1;
+				q.push({ v, cd + 1 });
+			}
+
+		}
+	}
+
+}
+
+#elif 0
 const int NM = 100'000;
 const int BS = 100;
 const int BC = NM / BS;
