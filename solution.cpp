@@ -1,12 +1,434 @@
-﻿#if 1
+﻿
 #include <iostream>
 #include <vector>
 #include <queue>
 #include <unordered_map>
 #include <string>
+#include <algorithm>
 #include <cstring>
+#include <set>
+using namespace std;
+#define log(...) do { fprintf(stderr, __VA_ARGS__); } while (0)
+#define ff(i, a, b) for (int i = (a); i < (b); ++i)
+#define pii pair<int, int>
+#define INF 987654321
+
+#if 1  
+const int NM = 100'000;
+const int BS = 100;
+const int BC = NM / BS;
+int c[NM], N;
+struct Node { int max_idx, max_v; };
+Node b[BC];
+void init(int N) {
+	::N = N;
+	memset(c, 0, sizeof(c));
+	memset(b, 0, sizeof(b));
+}
+Node getMax(int s, int e) {
+	int max_v = 0, max_idx = -1;
+
+	for (int i = s; i <= e;) {
+		if (i % BS != 0 || i + BS - 1 > e) {
+			// 단일 비교
+			if (max_v < c[i] || (max_v == c[i] && max_idx < i)) {
+				max_v = c[i];
+				max_idx = i;
+			}
+			i++;
+		}
+		else {
+			// 버킷 비교
+			if (max_v < b[i / BS].max_v || (max_v == b[i / BS].max_v && max_idx < b[i / BS].max_idx)) {
+				max_v = b[i / BS].max_v;
+				max_idx = b[i / BS].max_idx;
+			}
+			i += BS;
+		}
+	}
+	return { max_idx, max_v };
+}
+
+int calc() {
+	Node cur = getMax(0, N-1);
+	int res = cur.max_v;
+	int pos = cur.max_idx;
+	while (pos > 0) {
+		Node left = getMax(0, pos - 1);
+		if (left.max_v == 0) break;
+		res += left.max_v * (pos - left.max_idx);
+		pos = left.max_idx;
+	}
+	pos = cur.max_idx;
+	while (pos < N - 1) {
+		Node right = getMax(pos + 1, N - 1);
+		if (right.max_v == 0) break;
+		res += right.max_v * (right.max_idx - pos);
+		pos = right.max_idx;
+	}
+	return res;
+}
+int stock(int mLoc, int mBox) {
+	--mLoc;
+	c[mLoc] += mBox; 
+	if (b[mLoc / BS].max_v < c[mLoc]) {
+		b[mLoc / BS].max_v = c[mLoc];
+		b[mLoc / BS].max_idx = mLoc;
+	}
+	return calc();
+}
+
+int ship(int mLoc, int mBox) {
+	--mLoc;
+	c[mLoc] -= mBox;
+	if (b[mLoc / BS].max_v == c[mLoc] + mBox) {
+		int maxv = 0, maxidx = -1;
+		ff(i, (mLoc / BS) * BS, (mLoc / BS + 1) * BS) {
+			if (maxv < c[i] || (maxv == c[i] && maxidx < i)) {
+				maxv = c[i];
+				maxidx = i;
+			}
+		}
+		b[mLoc / BS].max_v = maxv;
+		b[mLoc / BS].max_idx = maxidx;
+	}
+
+	return calc();
+}
+
+int getHeight(int mLoc) {
+	--mLoc;
+
+	return c[mLoc];
+}
+
+#elif 0
+const int MAX = 100005;
+int N;
+int a[MAX];
+
+struct Node {
+	int value, index;
+};
+
+Node tree[MAX * 4];
+Node getMax(Node l, Node r) {
+	return (l.value != r.value) ? (l.value > r.value ? l : r) : (l.index > r.index ? l : r);
+}
+void build(int n, int s, int e) {
+	if (s == e) {
+		tree[n] = { a[s], s };
+	}
+	else {
+		int m = (s + e) / 2;
+		build(n * 2, s, m);
+		build(n * 2 + 1, m + 1, e);
+		tree[n] = getMax(tree[n * 2], tree[n * 2 + 1]);
+	}
+}
+void update(int n, int s, int e, int pos, int v) {
+	if (pos < s || e < pos) return;
+	if (s == e) {
+		a[pos] += v;
+		tree[n] = { a[pos], pos };
+	}
+	else {
+		int m = (s + e) / 2;
+		update(n * 2, s, m, pos, v);
+		update(n * 2 + 1, m + 1, e, pos, v);
+		tree[n] = getMax(tree[n * 2], tree[n * 2 + 1]);
+	}
+}
+Node query(int n, int s, int e, int l, int r) {
+	if (r < s || e < l) return { -1, -1} ;
+	if (l <= s && e <= r) return tree[n];
+	int m = (s + e) / 2;
+	Node left = query(n * 2, s, m, l, r);
+	Node right = query(n * 2 + 1, m + 1, e, l, r);
+	return getMax(left, right);
+}
+int calc() {
+	Node cur = query(1, 0, N - 1, 0, N - 1);
+	int res = cur.value;
+	int pos = cur.index;
+	while (pos > 0) {
+		Node left = query(1, 0, N - 1, 0, pos - 1);
+		if (left.value == 0) break;
+		res += left.value * (pos - left.index);
+		pos = left.index;
+	}
+	pos = cur.index;
+	while (pos < N - 1) {
+		Node right = query(1, 0, N - 1, pos + 1, N - 1);
+		if (right.value == 0) break;
+		res += right.value * (right.index - pos);
+		pos = right.index;
+	}
+	return res;
+}
+void init(int n) {
+	N = n;
+	memset(a, 0, sizeof(a));	
+	build(1, 0, N - 1);
+}
+int stock(int mLoc, int mBox) {
+	--mLoc;
+	update(1, 0, N - 1, mLoc, mBox);
+	return calc();
+}
+
+int ship(int mLoc, int mBox) {
+	--mLoc;
+	update(1, 0, N - 1, mLoc, -mBox);
+	return calc();
+}
+
+int getHeight(int mLoc) {
+	--mLoc;
+	return a[mLoc];
+}
+
+#elif 0
+#include <iostream>
 using namespace std;
 
+const int MAX = 100005;
+int N;
+int a[MAX];
+
+struct Node {
+	int value, index;
+};
+
+Node tree[MAX * 4];
+
+Node getMax(Node l, Node r) {
+	if (l.value > r.value) return l;
+	if (l.value < r.value) return r;
+	return (l.index > r.index ? l : r); // 오른쪽 우선
+
+	return (l.value != r.value) ? (l.value > r.value ? l : r) : (l.index > r.index ? l : r);
+
+}
+
+void build(int node, int start, int end) {
+	if (start == end) {
+		tree[node] = { a[start], start };
+		return;
+	}
+	int mid = (start + end) / 2;
+	build(node * 2, start, mid);
+	build(node * 2 + 1, mid + 1, end);
+	tree[node] = getMax(tree[node * 2], tree[node * 2 + 1]);
+}
+
+void update(int node, int start, int end, int pos, int val) {
+	if (pos < start || pos > end) return;
+	if (start == end) {
+		a[pos] += val;
+		tree[node] = { a[pos], pos };
+		return;
+	}
+	int mid = (start + end) / 2;
+	update(node * 2, start, mid, pos, val);
+	update(node * 2 + 1, mid + 1, end, pos, val);
+	tree[node] = getMax(tree[node * 2], tree[node * 2 + 1]);
+}
+
+Node query(int node, int start, int end, int l, int r) {
+	if (r < start || end < l) return { -1, -1 };
+	if (l <= start && end <= r) return tree[node];
+	int mid = (start + end) / 2;
+	Node left = query(node * 2, start, mid, l, r);
+	Node right = query(node * 2 + 1, mid + 1, end, l, r);
+	if (left.value == -1) return right;
+	if (right.value == -1) return left;
+	return getMax(left, right);
+}
+
+int calc() {
+	Node cur = query(1, 0, N - 1, 0, N - 1);
+	int res = cur.value;
+	int pos = cur.index;
+
+	while (pos > 0) {
+		Node left = query(1, 0, N - 1, 0, pos - 1);
+		if (left.value == 0) break;
+		res += left.value * (pos - left.index);
+		pos = left.index;
+	}
+
+	pos = cur.index;
+	while (pos < N - 1) {
+		Node right = query(1, 0, N - 1, pos + 1, N - 1);
+		if (right.value == 0) break;
+		res += right.value * (right.index - pos);
+		pos = right.index;
+	}
+
+	return res;
+}
+
+void init(int n) {
+	N = n;
+	for (int i = 0; i < N; ++i) a[i] = 0;
+	build(1, 0, N - 1);
+}
+
+int stock(int mLoc, int mBox) {
+	--mLoc;
+	update(1, 0, N - 1, mLoc, mBox);
+	return calc();
+}
+
+int ship(int mLoc, int mBox) {
+	--mLoc;
+	update(1, 0, N - 1, mLoc, -mBox);
+	return calc();
+}
+
+int getHeight(int mLoc) {
+	--mLoc;
+	return a[mLoc];
+}
+
+
+#elif 0
+const int NM = 3000 + 5; // 최대 블록 개수
+const int CM = 1'000'000 + 5; // 최대 열 개수
+const int HM = 10'000;
+const int BS = 1'000;
+const int BC = (CM + BS - 1) / BS; // 블록 크기
+
+struct Node {
+	int maxv, minv;
+	long long sum;
+	bool dirty;
+	int c[BS];
+}node[BC];
+int C;
+struct Result {
+	int top;
+	int count;
+};
+int max_value = 0, min_value = INF, total = 0, level = 0;
+void init(int C)
+{
+	::C = C;
+	memset(node, 0, sizeof(node));
+	
+	int l = 3, r = 18;
+	int bs = 5;
+
+	for (int i = l; i <= r;) {
+		if (i % bs || i >= (r / bs) * bs) { // ← 여기 수정!
+			printf("a[%d] 처리, %d\n", i, i+bs-1);
+			++i;
+		}
+		else {
+			printf("버킷 %d 처리\n", i);
+			i += bs;
+		}
+	}
+
+	printf("-=---------------------\n");
+
+	int s = l / bs;
+	int e = r / bs;
+
+	if (s == e) {
+		for(int i = l; i <= r; ++i) {
+			printf("a[%d] 처리\n", i);
+		}		
+	}
+	else {
+		for (int i = l; i < (s + 1) * bs; ++i) {
+			printf("a[%d] 처리\n", i);
+		}
+		for (int i = (s + 1); i < e; ++i) {
+			printf("b[%d] 처리\n", i*bs);
+		}
+		for (int i = e * bs; i <= r; ++i) {
+			printf("a[%d] 처리\n", i);
+		}
+	}
+
+
+
+	exit(1);
+	
+	max_value = 0, min_value = INF, total = 0;
+	level = 0;
+}
+
+Result dropBlocks(int mCol, int mHeight, int mLength)
+{
+	
+	int s = mCol / BS; // 시작 블록
+	int e = (mCol + mLength - 1) / BS; // 끝 블록
+
+	
+	if (s == e) { 
+		for( int i = mCol; i < mCol + mLength; ++i) {
+			Node& n = node[i / BS];
+			n.c[i % BS] += mHeight; // 해당 블록에 높이 설정
+			n.maxv = max(n.c[i % BS], n.maxv);			
+			n.minv = min(n.c[i % BS], n.minv);			
+			n.sum += mHeight;
+			n.dirty = true;
+		}
+		max_value = max(max_value, node[s].maxv);
+		min_value = min(min_value, node[s].minv);
+		total += mHeight * mLength;
+	}
+	else {
+		for (int i = mCol; i < (s + 1) * BS; ++i) {
+			Node& n = node[i / BS];
+			n.c[i % BS] += mHeight; // 해당 블록에 높이 설정
+			n.maxv = max(n.c[i % BS], n.maxv);
+			n.minv = min(n.c[i % BS], n.minv);
+			n.sum += mHeight;
+			total += mHeight;
+			n.dirty = true;
+		}
+		max_value = max(max_value, node[s].maxv);
+		min_value = min(min_value, node[s].minv);		
+
+		for (int i = s + 1 ; i < e; ++i) {
+			Node& n = node[i];
+			n.maxv += mHeight;
+			n.minv += mHeight;
+			n.sum += mHeight * BS;
+
+			max_value = max(max_value, n.maxv);
+			min_value = min(min_value, n.minv);
+			total += mHeight * BS;
+		}
+
+		
+		for (int i = e * BS ; i < mCol + mLength ; ++i) {
+			Node& n = node[i / BS];
+			n.c[i % BS] += mHeight; // 해당 블록에 높이 설정
+			n.maxv = max(n.c[i % BS], n.maxv);
+			n.minv = min(n.c[i % BS], n.minv);
+			n.sum += mHeight;
+			total += mHeight;
+			n.dirty = true;
+		}
+		max_value = max(max_value, node[s].maxv);
+		min_value = min(min_value, node[s].minv);
+	}
+
+	level = max_value - min_value; // 레벨 계산
+	total = total - level * C;
+
+	Result ret;
+	ret.top = max_value- level;
+	ret.count = total;
+	return ret;
+}
+
+#elif 0
 #define INF 1e9
 #define MAX_N 105
 #define MAX_M 55

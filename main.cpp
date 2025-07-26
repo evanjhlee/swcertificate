@@ -4,57 +4,57 @@
 
 #include <stdio.h>
 
-#define MAX_M 50
-#define MAX_K 1000
+#define CMD_INIT			(100)
+#define CMD_STOCK			(200)
+#define CMD_SHIP			(300)
+#define CMD_GET_HEIGHT		(400)
 
-#define CMD_INIT        100
-#define CMD_ADD			200
-#define CMD_REMOVE    	300
-#define CMD_TRANSPORT   400
-
-extern void init(int N, int M, int K, int mID[], int aStorage[], int bStorage[], char mAttr[][MAX_M]);
-extern void add(int mID, int aStorage, int bStorage, char mAttr[]);
-extern void remove(int mID);
-extern int transport(int sStorage, int eStorage, char mAttr[]);
+extern void init(int N);
+extern int stock(int mLoc, int mBox);
+extern int ship(int mLoc, int mBox);
+extern int getHeight(int mLoc);
 
 static bool run()
 {
-	int Q, ret, ans;
-	int N, M, K, mID, aStorage, bStorage, sStorage, eStorage;
-	int mIDArr[MAX_K], aStorageArr[MAX_K], bStorageArr[MAX_K];
-	char buf[MAX_M + 1], mAttr[MAX_M], mAttrArr[MAX_K][MAX_M];
+	int Q;
+	int N, mLoc, mBox;
+
+	int ret = -1, ans;
 
 	scanf("%d", &Q);
+
 	bool okay = false;
 
 	for (int q = 0; q < Q; ++q)
 	{
 		int cmd;
 		scanf("%d", &cmd);
-		switch (cmd) {
+		switch (cmd)
+		{
 		case CMD_INIT:
-			scanf("%d %d %d", &N, &M, &K);
-			for (int i = 0; i < K; ++i) {
-				scanf("%d %d %d %s", &mIDArr[i], &aStorageArr[i], &bStorageArr[i], buf);
-				for (int j = 0; j < M; ++j) mAttrArr[i][j] = buf[j];
-			}
-			init(N, M, K, mIDArr, aStorageArr, bStorageArr, mAttrArr);
+			scanf("%d", &N);
+			init(N);
 			okay = true;
 			break;
-		case CMD_ADD:
-			scanf("%d %d %d %s", &mID, &aStorage, &bStorage, buf);
-			for (int i = 0; i < M; ++i) mAttr[i] = buf[i];
-			add(mID, aStorage, bStorage, mAttr);
+		case CMD_STOCK:
+			scanf("%d %d", &mLoc, &mBox);
+			ret = stock(mLoc, mBox);
+			scanf("%d", &ans);
+			if (ret != ans)
+				okay = false;
 			break;
-		case CMD_REMOVE:
-			scanf("%d", &mID);
-			remove(mID);
+		case CMD_SHIP:
+			scanf("%d %d", &mLoc, &mBox);
+			ret = ship(mLoc, mBox);
+			scanf("%d", &ans);
+			if (ret != ans)
+				okay = false;
 			break;
-		case CMD_TRANSPORT:
-			scanf("%d %d %d %s", &sStorage, &eStorage, &ans, buf);
-			for (int i = 0; i < M; ++i) mAttr[i] = buf[i];
-			ret = transport(sStorage, eStorage, mAttr);
-			if (ans != ret)
+		case CMD_GET_HEIGHT:
+			scanf("%d", &mLoc);
+			ret = getHeight(mLoc);
+			scanf("%d", &ans);
+			if (ret != ans)
 				okay = false;
 			break;
 		default:
