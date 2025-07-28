@@ -5,19 +5,20 @@
 #include <stdio.h>
 
 #define CMD_INIT			(100)
-#define CMD_STOCK			(200)
-#define CMD_SHIP			(300)
-#define CMD_GET_HEIGHT		(400)
+#define CMD_ADD_SAMPLE		(200)
+#define CMD_DELETE_SAMPLE	(300)
+#define CMD_PREDICT			(400)
 
-extern void init(int N);
-extern int stock(int mLoc, int mBox);
-extern int ship(int mLoc, int mBox);
-extern int getHeight(int mLoc);
+extern void init(int K, int L);
+extern void addSample(int mID, int mX, int mY, int mC);
+extern void deleteSample(int mID);
+extern int predict(int mX, int mY);
 
 static bool run()
 {
 	int Q;
-	int N, mLoc, mBox;
+	int K, L;
+	int mID, mX, mY, mC;
 
 	int ret = -1, ans;
 
@@ -32,30 +33,26 @@ static bool run()
 		switch (cmd)
 		{
 		case CMD_INIT:
-			scanf("%d", &N);
-			init(N);
+			scanf("%d %d", &K, &L);
+			init(K, L);
 			okay = true;
 			break;
-		case CMD_STOCK:
-			scanf("%d %d", &mLoc, &mBox);
-			ret = stock(mLoc, mBox);
-			scanf("%d", &ans);
-			if (ret != ans)
-				okay = false;
+		case CMD_ADD_SAMPLE:
+			scanf("%d %d %d %d", &mID, &mX, &mY, &mC);
+			addSample(mID, mX, mY, mC);
 			break;
-		case CMD_SHIP:
-			scanf("%d %d", &mLoc, &mBox);
-			ret = ship(mLoc, mBox);
-			scanf("%d", &ans);
-			if (ret != ans)
-				okay = false;
+		case CMD_DELETE_SAMPLE:
+			scanf("%d", &mID);
+			deleteSample(mID);
 			break;
-		case CMD_GET_HEIGHT:
-			scanf("%d", &mLoc);
-			ret = getHeight(mLoc);
+		case CMD_PREDICT:
+			scanf("%d %d", &mX, &mY);
+			ret = predict(mX, mY);
 			scanf("%d", &ans);
-			if (ret != ans)
+			if (ret != ans) {
+				printf("ret = %d, ans = %d\n", ret, ans);
 				okay = false;
+			}
 			break;
 		default:
 			okay = false;

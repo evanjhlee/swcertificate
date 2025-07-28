@@ -14,55 +14,214 @@ using namespace std;
 #define pii pair<int, int>
 #define INF 987654321
 
-#if 1  
-const int NM = 4'000 + 5; // 최대 자료 개수
-const int BS = 100;
-const int BC = 40; // 블록 크기
-vector<int> b[BC][BC]; // b[i][j] : 블록 (i, j)의 자료 개수
-struct Node { int id, x, y, c; } node[BC];
-unordered_map<int, int> id2ndx; int ndx;// mID -> idx
+#if 1    
 /*
-2. 각 테스트 케이스에서 addSample() 함수의 호출 횟수는 20, 000 이하이다.
-3. 각 테스트 케이스에서 deleteSample() 함수의 호출 횟수는 1, 000 이하이다.
-4. 각 테스트 케이스에서 predict() 함수의 호출 횟수는 10, 000 이하이다.
-5. 임의 위치에 있는 크기가 100 * 100인 정사각형 안에 있는 자료의 개수는 최대 500이다.
+template<typename T, int N>
+struct FastArray {
 */
-void init(int K, int L) {
-	ndx = 0; id2ndx.clear();
-	memset(b, 0, sizeof(b));
+#elif 0
+const int NM = 1000 + 5; // 최대 샘플 개수
+struct FastArray {
+	int data[NM];
+	int count = 0;
+	int size() { return count; }
+	void clear() { count = 0; }
+	void push(int val) { data[count++] = val; }
+	void erase(int idx) { data[idx] = data[--count]; }
+	void remove(int val) {
+		ff(i, 0, count) {
+			if (data[i] == val) {
+				erase(i);
+				return; // 첫 번째로 발견된 값만 제거
+			}
+		}
+		log("ERRROR: remove %d not found\n", val);
+	}
+	int at(int idx) const { return data[idx]; }
+}a;
+
+ 
+vector<int> b;
+void remove_at(int idx) {
+	b[idx] = b.back();
+	b.pop_back();
 }
 
-void addSample(int mID, int mX, int mY, int mC) {	
-	id2ndx[mID] = ++ndx; 
-	node[ndx] = { mID, mX, mY, mC };
-	b[mX / BS][mY / BS].push_back(ndx); // 해당 블록에 자료 추가
+void init(int mK, int mL) {
+
+	b.clear();
+	// 0~9까지 삽입
+	for (int i = 0; i < 10; i++) {
+		b.push_back(i);
+	}
+
+	log("초기 배열: ");
+	for (int i = 0; i < a.size(); i++) log("%d ", b.at(i));
+	log("\n");
+
+	b.remove_at(0);   // 인덱스 0 삭제
+	a.erase(5);   // 인덱스 5 삭제
+	a.erase(3);   // 인덱스 3 삭제
+
+	log("erase 후 배열: ");
+	for (int i = 0; i < a.size(); i++) log("%d ", a.at(i));
+	log("\n");
+
+	a.remove(8);  // 값 8 삭제
+	a.remove(1);  // 값 1 삭제
+	a.remove(0);  // 값 0 삭제
+
+	log("remove 후 배열: ");
+	for (int i = 0; i < a.size(); i++) log("%d ", a.at(i));
+	log("\n");
+
+	exit(1);
+
+
+
+
+	
+	a.clear();
+    // 0~9까지 삽입
+    for (int i = 0; i < 10; i++) {
+        a.push(i);
+    }
+
+    log("초기 배열: ");
+    for (int i = 0; i < a.size(); i++) log("%d ", a.at(i));
+    log("\n");
+
+    a.erase(0);   // 인덱스 0 삭제
+    a.erase(5);   // 인덱스 5 삭제
+    a.erase(3);   // 인덱스 3 삭제
+
+    log("erase 후 배열: ");
+    for (int i = 0; i < a.size(); i++) log("%d ", a.at(i));
+    log("\n");
+
+    a.remove(8);  // 값 8 삭제
+    a.remove(1);  // 값 1 삭제
+    a.remove(0);  // 값 0 삭제
+
+    log("remove 후 배열: ");
+    for (int i = 0; i < a.size(); i++) log("%d ", a.at(i));
+    log("\n");
+
+    exit(1);
 }
+
+
+void addSample(int mID, int mX, int mY, int mC) {
+}
+
 void deleteSample(int mID) {
-	int idx = id2ndx[mID];
-	int bx = node[idx].x / BS;
-	int by = node[idx].y / BS;
-	auto& v = b[bx][by];
-	b[bx][by].erase(remove(b[bx][by].begin(), b[bx][by].end(), idx), b[bx][by].end());
 }
-int dx[9] = { -1, -1, -1, 0, 0, 1, 1, 1, 0 };
-int dy[9] = { -1, 0, 1, -1, 1, -1, 0, 1, 0 };
+
+
 int predict(int mX, int mY) {
-	//	Returns   점 (mX, mY)에 자료가 있을 경우 추정된 범주 값. 이상치인 경우 -1.*/
-	
-	vector<int> v1, v2, v3;
+	int ret = -1;
+	return ret;
+}
 
-	// v1에 v2 + v3 합치기 코드 보여줘
+#elif 0
+struct Point {
+	int x, y, c;
+};
 
+unordered_map<int, Point> idMap;
+vector<Point> grid[41][41];  // 4000/100=40 셀
 
+int K, L;
 
-	
-	int bx = mX / BS, by = mY / BS;
-	for (rint i = max(0, bx - 1); i < min(bx + 1, BC); ++i) {
-		for (rint j = max(0, by - 1); j < min(by + 1, BC); ++j) {
-			vector<int> v = b[i][j];
+void init(int mK, int mL) {
+	K = mK; L = mL;
+	idMap.clear();
+	for (int i = 0; i <= 40; i++)
+		for (int j = 0; j <= 40; j++)
+			grid[i][j].clear();
+}
+
+void addSample(int mID, int mX, int mY, int mC) {
+	idMap[mID] = { mX, mY, mC };
+	int cx = mX / 100;
+	int cy = mY / 100;
+	grid[cx][cy].push_back({ mX, mY, mC });
+}
+
+void deleteSample(int mID) {
+	Point p = idMap[mID];
+	int cx = p.x / 100;
+	int cy = p.y / 100;
+	auto& cell = grid[cx][cy];
+	for (int i = 0; i < (int)cell.size(); i++) {
+		if (cell[i].x == p.x && cell[i].y == p.y) {
+			cell[i] = cell.back();
+			cell.pop_back();
+			break;
 		}
 	}
+	idMap.erase(mID);
 }
+
+
+int predict(int mX, int mY) {
+	struct Node {
+		int dist, x, y, c;
+		bool operator<(const Node& o) const {
+			if (dist != o.dist) return dist < o.dist;
+			if (x != o.x) return x < o.x;
+			return y < o.y;
+		}
+	};
+
+	vector<Node> candidates;
+
+	int base_cx = mX / 100;
+	int base_cy = mY / 100;
+
+	// ✅ 탐색 범위를 L 기준으로 줄이기
+	int maxRange = L / 100 + 1;
+
+	for (int range = 0; range <= maxRange; range++) {
+		int startX = max(0, base_cx - range);
+		int endX = min(40, base_cx + range);
+		int startY = max(0, base_cy - range);
+		int endY = min(40, base_cy + range);
+
+		for (int cx = startX; cx <= endX; cx++) {
+			for (int cy = startY; cy <= endY; cy++) {
+				for (auto& p : grid[cx][cy]) {
+					int dist = abs(mX - p.x) + abs(mY - p.y);
+					// ✅ L보다 먼 점은 후보에 넣을 필요 없음
+					if (dist <= L) candidates.push_back({ dist, p.x, p.y, p.c });
+				}
+			}
+		}
+	}
+
+	if ((int)candidates.size() < K) return -1;
+
+	sort(candidates.begin(), candidates.end());
+
+	// ✅ 거리 체크 (이미 dist ≤ L만 넣었기 때문에 거의 안전)
+	if (candidates[K - 1].dist > L) return -1;
+
+	// ✅ 다수결
+	int cnt[11] = { 0 };
+	for (int i = 0; i < K; i++) {
+		cnt[candidates[i].c]++;
+	}
+
+	int bestC = 1;
+	for (int i = 2; i <= 10; i++) {
+		if (cnt[i] > cnt[bestC]) bestC = i;
+		else if (cnt[i] == cnt[bestC] && i < bestC) bestC = i;
+	}
+
+	return bestC;
+}
+
+
 #elif 0
 const int NM = 500 + 5;
 const int BM = 300 + 5; // 블록 크기
