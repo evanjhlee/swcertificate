@@ -4,59 +4,72 @@
 
 #include <stdio.h>
 
-#define CMD_INIT			(100)
-#define CMD_ADD_SAMPLE		(200)
-#define CMD_DELETE_SAMPLE	(300)
-#define CMD_PREDICT			(400)
+extern void init(int N, int mPopulation[]);
+extern int expand(int M);
+extern int calculate(int mFrom, int mTo);
+extern int divide(int mFrom, int mTo, int K);
 
-extern void init(int K, int L);
-extern void addSample(int mID, int mX, int mY, int mC);
-extern void deleteSample(int mID);
-extern int predict(int mX, int mY);
+/////////////////////////////////////////////////////////////////////////
+
+#define MAX_N				10000
+
+#define CMD_INIT			100
+#define CMD_EXPAND			200
+#define CMD_CALCULATE		300
+#define CMD_DIVIDE			400
 
 static bool run()
 {
-	int Q;
-	int K, L;
-	int mID, mX, mY, mC;
-
-	int ret = -1, ans;
+	int population[MAX_N];
+	int cmd, ans, ret;
+	int Q = 0;
+	int N, from, to, num;
+	bool okay = false;
 
 	scanf("%d", &Q);
 
-	bool okay = false;
-
 	for (int q = 0; q < Q; ++q)
 	{
-		int cmd;
 		scanf("%d", &cmd);
+
 		switch (cmd)
 		{
 		case CMD_INIT:
-			scanf("%d %d", &K, &L);
-			init(K, L);
+			scanf("%d", &N);
+
+			for (int i = 0; i < N; i++)
+				scanf("%d", &population[i]);
+
+			init(N, population);
 			okay = true;
 			break;
-		case CMD_ADD_SAMPLE:
-			scanf("%d %d %d %d", &mID, &mX, &mY, &mC);
-			addSample(mID, mX, mY, mC);
-			break;
-		case CMD_DELETE_SAMPLE:
-			scanf("%d", &mID);
-			deleteSample(mID);
-			break;
-		case CMD_PREDICT:
-			scanf("%d %d", &mX, &mY);
-			ret = predict(mX, mY);
+
+		case CMD_EXPAND:
+			scanf("%d", &num);
+			ret = expand(num);
 			scanf("%d", &ans);
-			if (ret != ans) {
-				printf("ret = %d, ans = %d\n", ret, ans);
+			if (ret != ans)
 				okay = false;
-			}
 			break;
+
+		case CMD_CALCULATE:
+			scanf("%d %d", &from, &to);
+			ret = calculate(from, to);
+			scanf("%d", &ans);
+			if (ret != ans)
+				okay = false;
+			break;
+
+		case CMD_DIVIDE:
+			scanf("%d %d %d", &from, &to, &num);
+			ret = divide(from, to, num);
+			scanf("%d", &ans);
+			if (ret != ans)
+				okay = false;
+			break;
+
 		default:
 			okay = false;
-			break;
 		}
 	}
 
@@ -66,12 +79,12 @@ static bool run()
 int main()
 {
 	setbuf(stdout, NULL);
-	 freopen("sample_input.txt", "r", stdin);
+	freopen("sample_input.txt", "r", stdin);
 
-	int TC, MARK;
+	int T, MARK;
+	scanf("%d %d", &T, &MARK);
 
-	scanf("%d %d", &TC, &MARK);
-	for (int tc = 1; tc <= TC; ++tc)
+	for (int tc = 1; tc <= T; tc++)
 	{
 		int score = run() ? MARK : 0;
 		printf("#%d %d\n", tc, score);

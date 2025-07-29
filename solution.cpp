@@ -11,10 +11,105 @@ using namespace std;
 #define log(...) do { fprintf(stderr, __VA_ARGS__); } while (0)
 #define rint register int
 #define ff(i, a, b) for (rint i = (a); i < (b); ++i)
+#define fff(i, a, b) for (rint i = (a); i <= (b); ++i)
 #define pii pair<int, int>
 #define INF 987654321
 
 #if 1    
+/*
+2. 각 테스트 케이스에서 expand() 함수는 최대 5,000회 호출된다.
+3. 각 테스트 케이스에서 calculate() 함수는 최대 2,500회 호출된다.
+4. 각 테스트 케이스에서 divide() 함수는 최대 300회 호출된다.
+*/
+const int NM = 10'000 + 5; // 최대 도시 개수
+const int PM = 1000; // 최대 도시 개수
+const int BS = 100;
+const int BC = 100;
+int p[NM]; int a[NM]; // 도시 인덱스 배열
+struct Node {
+	int lp, rp, ti, ct;
+} node[NM - 1]; int ndx;
+struct cmp {
+	bool operator()(const int & a, const int &b) const {
+		return node[a].ti != node[b].ti ? node[a].ti < node[b].ti : a > b; // 시간 기준으로 오름차순 정렬, 동일 시간일 경우 인덱스 기준으로 내림차순
+	}
+};
+set<int, cmp> s; // 최소 힙을 사용하기 위해 set을 사용
+priority_queue<int, vector<int>, cmp> pq; // 최소 힙
+int N, M; // 도시 개수, 도로 개수
+void insert(int i) {
+	if ( pq.size() < M ) {
+		pq.push(i);
+	} else {
+		pq.push(i);
+		pq.pop();		
+	}
+}
+void init(int N, int mPopulation[]) {
+	::N = N;
+	ndx = 0;
+	memset(a, 0, sizeof(a));	
+	ff(i,0,NM) {
+		p[i] = mPopulation[i]; // 초기화
+		a[i] += p[i];
+	}	
+
+	pq = {}; // 최소 힙 초기화
+	ff(i, 0, N - 1) {
+		node[i] = { p[i], p[i + 1], p[i] + p[i + 1], 1 }; // 초기 도로 시간 0
+		insert(i);		
+	}	
+}
+int expand(int M) {
+	int ret = 0; 
+	while (!pq.empty()) {
+		int idx = pq.top();  pq.pop();
+		Node& n = node[idx];
+		n.ti = (n.lp + n.rp) / ++n.ct; // 도로 확장 후 시간 <------------------------------------------------
+		pq.push(idx); // 다시 힙에 넣기
+		ret = n.ti; // 확장 후 이동 시간
+	}
+	return ret;
+	//마지막으로 확장한 도로의 확장 후 이동 시간.
+}
+int calculate(int mFrom, int mTo) {
+	int ret = a[mTo] - a[mFrom]; // mFrom에서 mTo까지의 이동 시간
+	return ret;
+}
+bool check(int f, int t, int K, int m) {	
+	int sum = 0;
+	fff(i, f, t) {
+		sum += p[i]; // mFrom에서 mTo까지의 이동 시간 합
+		if (sum > m) {
+			sum = 0; 
+			K--;			
+			if (K < 0) return false; // K개 이하로 나눌 수 없으면 false
+		}		
+	}
+	return true;
+}
+int divide(int mFrom, int mTo, int K) {
+
+	if (mTo - mFrom + 1 < K) 
+		return 0; // mFrom에서 mTo까지의 도시 개수가 K개 이하이면 0 반환
+
+	int l = 0, h = NM * PM;
+
+	while ( l < h )  {
+		int m = (l + h) / 2;
+
+		if (check(mFrom, mTo, K, m)) {
+			h = m;
+		}
+		else {
+			l = m + 1;
+		}
+	}
+
+	return l;
+}
+
+#elif 0
 /*
 template<typename T, int N>
 struct FastArray {
