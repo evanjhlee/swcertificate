@@ -4,68 +4,68 @@
 
 #include <stdio.h>
 
-extern void init(int N, int mPopulation[]);
-extern int expand(int M);
-extern int calculate(int mFrom, int mTo);
-extern int divide(int mFrom, int mTo, int K);
+extern void init(int N);
+extern void buildTower(int mRow, int mCol, int mColor);
+extern void removeTower(int mRow, int mCol);
+extern int countTower(int mRow, int mCol, int mColor, int mDis);
+extern int getClosest(int mRow, int mCol, int mColor);
 
 /////////////////////////////////////////////////////////////////////////
 
-#define MAX_N				10000
-
-#define CMD_INIT			100
-#define CMD_EXPAND			200
-#define CMD_CALCULATE		300
-#define CMD_DIVIDE			400
+#define CMD_INIT	0
+#define CMD_BUILD	1
+#define CMD_REMOVE	2
+#define CMD_COUNT	3
+#define CMD_GET		4
 
 static bool run()
 {
-	int population[MAX_N];
-	int cmd, ans, ret;
+	int cmd, n, row, col, color, dis, ret;
+	int ans;
+
 	int Q = 0;
-	int N, from, to, num;
 	bool okay = false;
 
 	scanf("%d", &Q);
-
 	for (int q = 0; q < Q; ++q)
 	{
 		scanf("%d", &cmd);
-
 		switch (cmd)
 		{
 		case CMD_INIT:
-			scanf("%d", &N);
-
-			for (int i = 0; i < N; i++)
-				scanf("%d", &population[i]);
-
-			init(N, population);
+			scanf("%d", &n);
+			init(n);
 			okay = true;
 			break;
 
-		case CMD_EXPAND:
-			scanf("%d", &num);
-			ret = expand(num);
-			scanf("%d", &ans);
-			if (ret != ans)
-				okay = false;
+		case CMD_BUILD:
+			scanf("%d %d %d", &row, &col, &color);
+			buildTower(row, col, color);
 			break;
 
-		case CMD_CALCULATE:
-			scanf("%d %d", &from, &to);
-			ret = calculate(from, to);
-			scanf("%d", &ans);
-			if (ret != ans)
-				okay = false;
+		case CMD_REMOVE:
+			scanf("%d %d", &row, &col);
+			removeTower(row, col);
 			break;
 
-		case CMD_DIVIDE:
-			scanf("%d %d %d", &from, &to, &num);
-			ret = divide(from, to, num);
+		case CMD_COUNT:
+			scanf("%d %d %d %d", &row, &col, &color, &dis);
+			ret = countTower(row, col, color, dis);
 			scanf("%d", &ans);
-			if (ret != ans)
+			if (ret != ans) {
 				okay = false;
+				printf("CNT ret=%d, ans=%d <----------------------------\n", ret, ans);
+			}
+			break;
+
+		case CMD_GET:
+			scanf("%d %d %d", &row, &col, &color);
+			ret = getClosest(row, col, color);
+			scanf("%d", &ans);
+			if (ret != ans) {
+				okay = false;
+				printf("GET ret=%d, ans=%d <----------------------------\n", ret, ans);
+			}
 			break;
 
 		default:
@@ -79,7 +79,7 @@ static bool run()
 int main()
 {
 	setbuf(stdout, NULL);
-	freopen("sample_input.txt", "r", stdin);
+	 freopen("sample_input.txt", "r", stdin);
 
 	int T, MARK;
 	scanf("%d %d", &T, &MARK);

@@ -8,7 +8,7 @@
 #include <cstring>
 #include <set>
 using namespace std;
-#define log(...) do { fprintf(stderr, __VA_ARGS__); } while (0)
+#define log(...)  do { fprintf(stderr, __VA_ARGS__); } while (0)
 #define rint register int
 #define ff(i, a, b) for (rint i = (a); i < (b); ++i)
 #define fff(i, a, b) for (rint i = (a); i <= (b); ++i)
@@ -16,6 +16,372 @@ using namespace std;
 #define INF 987654321
 
 #if 1    
+const int NM = 50'000 + 5; // 최대 타워 개수 
+const int MM = 5'000 + 5; // map 크기 
+const int BS = 50; // 블록 크기
+const int BC = 100;
+struct Node {
+	int r, c, color, deleted, pos1, pos2;
+} node[NM]; int ndx; // 타워 좌표 저장
+int m[MM][MM]; // 0 = 없음, 1~5 = 색깔
+vector<int> tower[BC][BC][6]; // 색깔별 타워 좌표 저장
+
+int N;
+
+void dbg() {
+	return;
+	log("++++++++++++++\n");
+	fff(i, 0, N / BS) {
+		fff(j, 0, N / BS) {
+			fff(k, 0, 5) {
+				for(auto & l: tower[i][j][k]) {
+					Node &n = node[l];
+					log("%-8s: [%2d][%2d][%2d] - r:%2d, c:%2d, color:%2d, pos1:%2d, pos2:%2d\n", __func__, i,j,k, n.r, n.c, n.color, n.pos1, n.pos2);
+				}
+				log("\n");
+			}
+		}		
+	}
+	log("--------------\n");
+}
+void init(int N) {
+	::N = N;
+	ndx = 0;
+	memset(m, 0, sizeof(m)); // 맵 초기화
+	ff(i,0,BC) {
+		ff(j,0,BC) {
+			ff(c,0,6) {
+				tower[i][j][c].clear();
+			}
+		}
+	}	
+}
+void buildTower(int mRow, int mCol, int mColor) {
+	
+	node[ndx] = { mRow, mCol, mColor, 0, 0, 0 };
+	tower[mRow / BS][mCol / BS][0].push_back(ndx); 
+	tower[mRow / BS][mCol / BS][mColor].push_back(ndx);	
+
+	node[ndx].pos1 = tower[mRow / BS][mCol / BS][0].size() - 1; 
+	node[ndx].pos2 = tower[mRow / BS][mCol / BS][mColor].size() - 1;	
+
+	m[mRow][mCol] = ndx;
+	ndx++;
+
+	log("%-8s(%2d, %2d, %2d)\n", __FUNCTION__, mRow, mCol, mColor);
+}
+
+void removeTower(int mRow, int mCol) {
+
+	int idx = m[mRow][mCol];
+	Node& n = node[idx];
+
+	vector<int>& vv = tower[n.r / BS][n.c / BS][0];
+	vv[n.pos1] = vv.back();
+	vv.pop_back(); 
+	
+	vector<int>& v = tower[n.r / BS][n.c / BS][n.color];
+	v[n.pos2] = v.back();
+	v.pop_back();
+	
+	log("%-8s(%2d, %2d)\n", __FUNCTION__, mRow, mCol);
+}
+
+int countTower(int mRow, int mCol, int mColor, int mDis) {
+
+	dbg();
+	int count = 0; 
+	int br = mRow / BS;
+	int bc = mCol / BS;
+
+	for (rint i = max(0, br - 1); i <= min(BC - 1, br + 1); i++) {
+		for (rint j = max(0, bc - 1); j <= min(BC - 1, bc + 1); j++) {
+			for (auto& idx : tower[i][j][mColor]) {
+				Node& n = node[idx];
+				//if (n.deleted) continue;
+				
+				if (n.r - mDis <= mRow && mRow <= n.r + mDis && n.c - mDis <= mCol && mCol <= n.c + mDis) {
+					count++;
+				}
+			}
+		}
+	}
+
+	int ret = count; 
+	log("%-8s(%2d, %2d, %2d, %2d)\t\tret=%2d\n", __FUNCTION__, mRow, mCol, mColor, mDis, ret);
+	return ret;
+}
+
+int getClosest(int mRow, int mCol, int mColor) {
+
+	dbg(); 
+	int br = mRow / BS;
+	int bc = mCol / BS;
+	
+	int minDistance = INF;
+	for (rint d = 0; d < 2 * BC; ++d) {		
+		for (rint i = max(0, br - d); i <= min(BC - 1, br + d); i++) {
+			for (rint j = max(0, bc - d); j <= min(BC - 1, bc + d); j++) {
+				for (auto& idx : tower[i][j][mColor]) {
+					Node& n = node[idx];
+					if (n.deleted) continue;
+					int dis = abs(n.r - mRow) + abs(n.c - mCol);
+					if (minDistance > dis) {
+						minDistance = dis;
+					}
+				}
+			}
+		}
+
+		if (minDistance != INF && minDistance < 2 * d * BC) {
+			break;
+		}
+
+	}
+
+	int ret = minDistance == INF ? -1 : minDistance;
+	log("%-8s(%2d, %2d, %2d)\t\t\tret=%2d\n", __FUNCTION__, mRow, mCol, mColor, ret);
+	return ret;
+}
+
+#elif 0
+int N;
+int board[5001][5001]; // 0 = 없음, 1~5 = 색깔
+vector<pair<int, int>> towers[6]; // 색깔별 타워 좌표 저장
+
+void init(int n) {
+	N = n;
+	for (int i = 1; i <= N; i++)
+		for (int j = 1; j <= N; j++)
+			board[i][j] = 0;
+	for (int c = 0; c <= 5; c++)
+		towers[c].clear();
+}
+
+void buildTower(int mRow, int mCol, int mColor) {
+	board[mRow][mCol] = mColor;
+	towers[mColor].push_back({ mRow, mCol });
+}
+
+void removeTower(int mRow, int mCol) {
+	int color = board[mRow][mCol];
+	if (color == 0) return;
+	board[mRow][mCol] = 0;
+	// towers[color] 에서 해당 좌표 삭제
+	auto& v = towers[color];
+	for (int i = 0; i < v.size(); i++) {
+		if (v[i].first == mRow && v[i].second == mCol) {
+			v[i] = v.back();
+			v.pop_back();
+			break;
+		}
+	}
+}
+
+int countTower(int mRow, int mCol, int mColor, int mDis) {
+	int r1 = max(1, mRow - mDis);
+	int c1 = max(1, mCol - mDis);
+	int r2 = min(N, mRow + mDis);
+	int c2 = min(N, mCol + mDis);
+
+	int cnt = 0;
+	for (int r = r1; r <= r2; r++) {
+		for (int c = c1; c <= c2; c++) {
+			if (board[r][c] == 0) continue;
+			if (mColor == 0 || board[r][c] == mColor)
+				cnt++;
+		}
+	}
+	return cnt;
+}
+
+int getClosest(int mRow, int mCol, int mColor) {
+	int best = INT_MAX;
+	if (mColor == 0) {
+		for (int c = 1; c <= 5; c++) {
+			for (auto& p : towers[c]) {
+				int d = abs(mRow - p.first) + abs(mCol - p.second);
+				if (d < best) best = d;
+			}
+		}
+	}
+	else {
+		for (auto& p : towers[mColor]) {
+			int d = abs(mRow - p.first) + abs(mCol - p.second);
+			if (d < best) best = d;
+		}
+	}
+	return (best == INT_MAX) ? -1 : best;
+}
+
+
+#elif 0
+#include <algorithm>
+#include <list>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <ctime>
+#include <iostream>
+#include <map>
+#include <queue>
+#include <set>
+#include <stack>
+#include <unordered_map>
+#include <unordered_set> 
+#include <vector>
+#include <bitset>
+using namespace std;
+#define rint register int
+#define ll long long
+#define ull unsigned long long
+#define pii pair<int,int>
+#define pll pair<ull, ull>
+#define INF 987654321
+#define ff(_i,_a,_b) for(rint _i=_a;_i<_b;++_i)
+#define rr(_i,_a,_b) for(rint _i=_a;_i>=_b;--_i)
+#define log(...) //do { fprintf(stderr,__VA_ARGS__); } while(0)
+
+/*
+* 50 * 11000 * 5000 =
+2. 감시탑은 평원 전체에 고르게 설치된다.
+3. 각 테스트 케이스에서 색깔 하나의 타워는 최대 11,000 개 이다.
+4. 각 테스트 케이스에서 buildTower() 함수의 호출 횟수는 최대 50,000 이다.
+5. 각 테스트 케이스에서 removeTower() 함수의 호출 횟수는 최대 1,000 이다.
+6. 각 테스트 케이스에서 countTower() 함수의 호출 횟수는 최대 10,000 이다.
+7. 각 테스트 케이스에서 getClosest() 함수의 호출 횟수는 최대 5,000 이다.  
+*/
+#include<iostream>
+#include<memory.h>
+#include<algorithm>
+using  namespace std;
+const int NMAX = 50'000;
+const int NM = 5'005;
+struct T {
+	int r, c, color, exist;
+};
+
+vector<T> v[6];
+int m[NM][NM];
+
+//t[NMAX]; int idx;
+
+int N;
+void init(int N) {
+	::N = N;
+	//idx = 0;
+	ff(i, 0, 6)
+		v[i].clear();
+	memset(m, 0, sizeof(m));
+}
+void buildTower(int mRow, int mCol, int mColor) {	
+	v[mColor].push_back({ mRow, mCol, mColor, true });
+	v[0].push_back({ mRow, mCol, mColor, true });
+	m[mRow][mCol] = mColor;
+}
+void removeTower(int mRow, int mCol) {
+
+	int color = m[mRow][mCol];
+	if (color == 0)
+		return;
+
+	v[color].erase(remove_if(v[color].begin(), v[color].end(),
+		[&mCol, &mRow](const T& t) { return t.c == mCol && t.r == mRow; }),
+		v[color].end());
+
+	v[0].erase(remove_if(v[0].begin(), v[0].end(),
+		[&mCol, &mRow](const T& t) { return t.c == mCol && t.r == mRow; }),
+		v[0].end());
+
+	m[mRow][mCol] = 0;
+}
+int countTower(int mRow, int mCol, int mColor, int mDis) {
+
+	int ret = 0;
+	int sr = max(0, mRow - mDis);
+	int er = min(N, mRow + mDis);
+	int sc = max(0, mCol - mDis);
+	int ec = min(N, mCol + mDis);
+	ff(i, sr, er + 1) {
+		ff(j, sc, ec + 1) {
+			if (mColor == 0 && m[i][j] > 0)                  ret++;
+			else if (mColor > 0 && m[i][j] == mColor)        ret++;
+		}
+	}
+	log("%d %s\n", ret, __FUNCTION__);
+	return ret;
+}
+int visit[NM][NM];
+int dr[4] = { 0, 0, 1, -1 };
+int dc[4] = { 1, -1, 0, 0 };
+bool isValid(int r, int c) {
+	if (r <0 || r>N || c<0 || c>N)
+		return false;
+	else
+		return true;
+}
+int bfs(int r, int c, int color) {
+
+	memset(visit, 0, sizeof(visit));
+	queue<pii> q;
+
+	//visit[r][c] = ;
+	q.push({ r,c });
+
+	while (!q.empty()) {
+		int cr = q.front().first;
+		int cc = q.front().second;
+		q.pop();
+		if (color == 0 && m[cr][cc] > 0) {
+			return visit[cr][cc];
+		}
+		else if (color != 0 && m[cr][cc] == color) {
+			return visit[cr][cc];
+		}
+
+		ff(i, 0, 4) {
+			int nr = dr[i] + cr;
+			int nc = dc[i] + cc;
+
+			if (!isValid(nr, nc)) continue;
+
+			if (visit[nr][nc] > 0) continue;
+
+			visit[nr][nc] = visit[cr][cc] + 1;
+
+			q.push({ nr, nc });
+
+		}
+	}
+	return -1;
+
+}
+
+int getClosest(int mRow, int mCol, int mColor) {
+
+
+
+	/*
+	int ret = bfs(mRow, mCol, mColor);
+	*/
+
+	int ret = -1;
+
+	int mv = INF;
+
+	for (auto& i : v[mColor]) {
+		int distance = abs(i.r - mRow) + abs(i.c - mCol);
+		if (mv > distance)
+			mv = distance;
+	}
+
+	if (mv != INF) ret = mv;
+
+	log("%d %s\n", ret, __FUNCTION__);
+	return ret;
+
+}
+#elif 0
 /*
 2. 각 테스트 케이스에서 expand() 함수는 최대 5,000회 호출된다.
 3. 각 테스트 케이스에서 calculate() 함수는 최대 2,500회 호출된다.
