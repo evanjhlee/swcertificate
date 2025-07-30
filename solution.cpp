@@ -21,10 +21,11 @@ const int MM = 5'000 + 5; // map 크기
 const int BS = 50; // 블록 크기
 const int BC = 100;
 struct Node {
-	int r, c, color, deleted, pos1, pos2;
+	int r, c, color, deleted;
 } node[NM]; int ndx; // 타워 좌표 저장
 int m[MM][MM]; // 0 = 없음, 1~5 = 색깔
 vector<int> tower[BC][BC][6]; // 색깔별 타워 좌표 저장
+unordered_map<int, vector<int>::iterator> idx2iter[6];
 
 int N;
 
@@ -36,7 +37,7 @@ void dbg() {
 			fff(k, 0, 5) {
 				for(auto & l: tower[i][j][k]) {
 					Node &n = node[l];
-					log("%-8s: [%2d][%2d][%2d] - r:%2d, c:%2d, color:%2d, pos1:%2d, pos2:%2d\n", __func__, i,j,k, n.r, n.c, n.color, n.pos1, n.pos2);
+					log("%-8s: [%2d][%2d][%2d] - r:%2d, c:%2d, color:%2d\n", __func__, i,j,k, n.r, n.c, n.color);
 				}
 				log("\n");
 			}
@@ -51,6 +52,7 @@ void init(int N) {
 	ff(i,0,BC) {
 		ff(j,0,BC) {
 			ff(c,0,6) {
+				idx2iter->clear();
 				tower[i][j][c].clear();
 			}
 		}
@@ -58,12 +60,12 @@ void init(int N) {
 }
 void buildTower(int mRow, int mCol, int mColor) {
 	
-	node[ndx] = { mRow, mCol, mColor, 0, 0, 0 };
+	node[ndx] = { mRow, mCol, mColor, 0};
 	tower[mRow / BS][mCol / BS][0].push_back(ndx); 
 	tower[mRow / BS][mCol / BS][mColor].push_back(ndx);	
 
-	node[ndx].pos1 = tower[mRow / BS][mCol / BS][0].size() - 1; 
-	node[ndx].pos2 = tower[mRow / BS][mCol / BS][mColor].size() - 1;	
+	idx2iter[0][ndx] = --tower[mRow / BS][mCol / BS][0].end();
+	idx2iter[mColor][ndx] = --tower[mRow / BS][mCol / BS][mColor].end();
 
 	m[mRow][mCol] = ndx;
 	ndx++;
@@ -72,19 +74,22 @@ void buildTower(int mRow, int mCol, int mColor) {
 }
 
 void removeTower(int mRow, int mCol) {
+    int idx = m[mRow][mCol];
+    Node& n = node[idx];
 
-	int idx = m[mRow][mCol];
-	Node& n = node[idx];
+    // 1️⃣ 전체 리스트에서 iterator로 삭제
+    tower[n.r / BS][n.c / BS][0].erase(idx2iter[0][idx]);
+    idx2iter[0].erase(idx);   // map에서도 제거
 
-	vector<int>& vv = tower[n.r / BS][n.c / BS][0];
-	vv[n.pos1] = vv.back();
-	vv.pop_back(); 
-	
-	vector<int>& v = tower[n.r / BS][n.c / BS][n.color];
-	v[n.pos2] = v.back();
-	v.pop_back();
-	
-	log("%-8s(%2d, %2d)\n", __FUNCTION__, mRow, mCol);
+    // 2️⃣ 색상 리스트에서 iterator로 삭제
+    tower[n.r / BS][n.c / BS][n.color].erase(idx2iter[n.color][idx]);
+    idx2iter[n.color].erase(idx);
+
+    // 3️⃣ 맵 & 노드 정보 정리
+    m[mRow][mCol] = 0;
+    n.deleted = 1; // 혹시 countTower 같은 데서 필요할 수 있음
+
+    log("%-8s(%2d, %2d)\n", __FUNCTION__, mRow, mCol);
 }
 
 int countTower(int mRow, int mCol, int mColor, int mDis) {
@@ -98,7 +103,7 @@ int countTower(int mRow, int mCol, int mColor, int mDis) {
 		for (rint j = max(0, bc - 1); j <= min(BC - 1, bc + 1); j++) {
 			for (auto& idx : tower[i][j][mColor]) {
 				Node& n = node[idx];
-				//if (n.deleted) continue;
+				if (n.deleted) continue;
 				
 				if (n.r - mDis <= mRow && mRow <= n.r + mDis && n.c - mDis <= mCol && mCol <= n.c + mDis) {
 					count++;
