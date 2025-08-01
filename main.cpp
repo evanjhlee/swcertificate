@@ -3,92 +3,106 @@
 #endif
 
 #include <stdio.h>
+#include <ctime>
 
-extern void init(int N);
-extern void buildTower(int mRow, int mCol, int mColor);
-extern void removeTower(int mRow, int mCol);
-extern int countTower(int mRow, int mCol, int mColor, int mDis);
-extern int getClosest(int mRow, int mCol, int mColor);
+clock_t st, et[10];
+extern void init(int N, int mSubscriber[]);
+extern int subscribe(int mId, int mNum);
+extern int unsubscribe(int mId, int mNum);
+extern int count(int sId, int eId);
+extern int calculate(int sId, int eId);
 
 /////////////////////////////////////////////////////////////////////////
 
-#define CMD_INIT	0
-#define CMD_BUILD	1
-#define CMD_REMOVE	2
-#define CMD_COUNT	3
-#define CMD_GET		4
+#define MAX_N 200000
+#define CMD_INIT 100
+#define CMD_SUBSCRIBE 200
+#define CMD_UNSUBSCRIBE 300
+#define CMD_COUNT 400
+#define CMD_CALCULATE 500
 
-static bool run()
-{
-	int cmd, n, row, col, color, dis, ret;
-	int ans;
+static int mSubscriber[MAX_N];
 
-	int Q = 0;
+static bool run() {
+	int q;
+	scanf("%d", &q);
+
+	int n, mId, mNum, sId, eId;
+	int cmd, ans, ret = 0;
 	bool okay = false;
 
-	scanf("%d", &Q);
-	for (int q = 0; q < Q; ++q)
-	{
+	for (int i = 0; i < q; ++i) {
+		st = clock();
 		scanf("%d", &cmd);
-		switch (cmd)
-		{
+		switch (cmd) {
 		case CMD_INIT:
-			scanf("%d", &n);
-			init(n);
 			okay = true;
+			scanf("%d", &n);
+			for (int j = 0; j < n; ++j) {
+				scanf("%d", &mSubscriber[j]);
+			}
+			init(n, mSubscriber);
+			et[0] += clock() -st;
 			break;
-
-		case CMD_BUILD:
-			scanf("%d %d %d", &row, &col, &color);
-			buildTower(row, col, color);
+		case CMD_SUBSCRIBE:
+			scanf("%d %d %d", &mId, &mNum, &ans);
+			ret = subscribe(mId, mNum);
+			if (ans != ret) {
+				okay = false;
+				printf("--------------------->subscribe in count: expected %d, got %d\n", ans, ret);
+			}
+			et[1] += clock() - st;
 			break;
-
-		case CMD_REMOVE:
-			scanf("%d %d", &row, &col);
-			removeTower(row, col);
+		case CMD_UNSUBSCRIBE:
+			scanf("%d %d %d", &mId, &mNum, &ans);
+			ret = unsubscribe(mId, mNum);
+			if (ans != ret) {
+				okay = false;
+				printf("--------------------->CMD_UNSUBSCRIBE in count: expected %d, got %d\n", ans, ret);
+			}
+			et[2] += clock() - st;
 			break;
-
 		case CMD_COUNT:
-			scanf("%d %d %d %d", &row, &col, &color, &dis);
-			ret = countTower(row, col, color, dis);
-			scanf("%d", &ans);
-			if (ret != ans) {
+			scanf("%d %d %d", &sId, &eId, &ans);
+			ret = count(sId, eId);
+			if (ans != ret) {
 				okay = false;
-				printf("CNT ret=%d, ans=%d <----------------------------\n", ret, ans);
+				printf("--------------------->CMD_COUNT in count: expected %d, got %d\n", ans, ret);
 			}
+			et[3] += clock() - st;
 			break;
-
-		case CMD_GET:
-			scanf("%d %d %d", &row, &col, &color);
-			ret = getClosest(row, col, color);
-			scanf("%d", &ans);
-			if (ret != ans) {
+		case CMD_CALCULATE:
+			scanf("%d %d %d", &sId, &eId, &ans);
+			ret = calculate(sId, eId);
+			if(ans != ret) {
 				okay = false;
-				printf("GET ret=%d, ans=%d <----------------------------\n", ret, ans);
+				printf("--------------------->CMD_CALCULATE in count: expected %d, got %d\n", ans, ret);
 			}
+			et[4] += clock() - st;
 			break;
-
 		default:
 			okay = false;
+			break;
 		}
+		et[5] += clock() - st;
 	}
-
 	return okay;
 }
 
-int main()
-{
+int main() {
 	setbuf(stdout, NULL);
 	 freopen("sample_input.txt", "r", stdin);
 
 	int T, MARK;
 	scanf("%d %d", &T, &MARK);
 
-	for (int tc = 1; tc <= T; tc++)
-	{
+	for (int tc = 1; tc <= T; tc++) {
 		int score = run() ? MARK : 0;
 		printf("#%d %d\n", tc, score);
 	}
-
+	for(int i = 0 ; i < 6; ++i) { 
+		printf("%d %.3f\n", i, (double)et[i] * 1000. / CLOCKS_PER_SEC);
+	}
+	
 	return 0;
 }

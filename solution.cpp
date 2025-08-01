@@ -1,4 +1,4 @@
-﻿
+﻿ 
 #include <iostream>
 #include <vector>
 #include <queue>
@@ -8,7 +8,7 @@
 #include <cstring>
 #include <set>
 using namespace std;
-#define log(...)  do { fprintf(stderr, __VA_ARGS__); } while (0)
+#define log(...)  //do { fprintf(stderr, __VA_ARGS__); } while (0)
 #define rint register int
 #define ff(i, a, b) for (rint i = (a); i < (b); ++i)
 #define fff(i, a, b) for (rint i = (a); i <= (b); ++i)
@@ -16,17 +16,130 @@ using namespace std;
 #define INF 987654321
 
 #if 1    
+/*2. 각 테스트 케이스에서 subscribe() 함수의 호출 횟수는 15,000 이하이다.
+3. 각 테스트 케이스에서 unsubscribe() 함수의 호출 횟수는 15,000 이하이다.
+4. 각 테스트 케이스에서 count() 함수의 호출 횟수는 15,000 이하이다.
+5. 각 테스트 케이스에서 calculate() 함수의 호출 횟수는 15,000 이하이다.
+*/
+const int NM = 200'000;
+const int BS = 400;
+const int BC = 500; // NM / BS; // 블록 개수
+int a[NM], N, bs, bc, flg;
+struct Node { int sum, maxv, minv; } b[BC];
+
+void dbg() {
+	return;
+	ff(i,0,N) {
+		log("%2d ", a[i]);		
+	}
+	log("\n");
+	ff(i, 0, (N + bs - 1) / bs) {
+		log("Bucket %2d - (%2d %2d %2d)\n", i, b[i].sum, b[i].maxv, b[i].minv);
+	}
+	log("\n");
+}
+int subscribe(int mId, int mNum) {
+
+	mId--; // 0-based index
+	a[mId] += mNum; // ID가 mId인 스트리머의 구독자 수 증가
+
+	int I = mId / bs; // 블록 인덱스
+	int minValue = INF, maxValue = 0;
+	for (rint i = I * bs; i < min(N, bs * (I + 1)); i++) {
+		minValue = std::min(minValue, a[i]);
+		maxValue = std::max(maxValue, a[i]);
+	}
+
+	b[I].sum += mNum;
+	b[I].maxv = maxValue;
+	b[I].minv = minValue;
+
+	if (flg == 0) {
+		//dbg();
+		log("%-8s(%2d, %2d)\t\tret=%2d\n", __FUNCTION__, mId, mNum, a[mId]);
+	}
+
+	return a[mId];
+}
+
+void init(int N, int mSubscriber[]) {
+	flg = 1;
+	::N = N;
+	//bs = sqrt(N); // 블록 크기
+	bs = 400;
+	//bc = (N + bs - 1) / bs; // 블록 개수
+	bc = (N + bs - 1) / bs; // 블록 개수	
+	
+	for (rint i = 0; i < N; ++i) {
+		b[i / bs] = { 0, 0, INF }; // 블록 초기화
+	}
+
+	for (rint i = 0; i < N; ++i) {
+		a[i] = mSubscriber[i];
+		b[i / bs].sum += mSubscriber[i];
+		b[i / bs].maxv = std::max(b[i / bs].maxv, a[i]);
+		b[i / bs].minv = std::min(b[i / bs].minv, a[i]);
+	}
+
+}
+int unsubscribe(int mId, int mNum) {
+	flg = 1;
+	int ret = subscribe(mId, -mNum);
+	//dbg();
+	log("%-8s(%2d, %2d)\t\tret=%2d\n", __FUNCTION__, mId, mNum, ret);
+	flg = 0; 
+	return ret;	
+}
+int count(int sId, int eId) {
+	sId--; eId--; // 0-based index
+	int ret = 0; 
+	for (rint i = sId; i <= eId; ) {
+		if (i % bs == 0 && i + bs - 1 <= eId) {
+			ret += b[i / bs].sum;
+			i += bs;
+		}
+		else {
+			ret += a[i];
+			i++;
+		}
+	}
+	//dbg();
+	log("%-8s(%2d, %2d)\t\tret=%2d\n", __FUNCTION__, sId+1, eId+1, ret);
+	return ret;
+}
+int calculate(int sId, int eId) {
+	sId--; eId--; // 0-based index
+	int minValue = INF, maxValue = 0;;
+	for (rint i = sId; i <= eId; ) {
+		if (i % bs == 0 && i + bs - 1 <= eId) {
+			maxValue = std::max(maxValue, b[i / bs].maxv);
+			minValue = std::min(minValue, b[i / bs].minv); 			
+			i += bs;
+		}
+		else {
+			maxValue = std::max(maxValue, a[i]);
+			minValue = std::min(minValue, a[i]);
+			i++;
+		}
+	}
+	//dbg();
+	log("%-8s(%2d, %2d)\t\tret=%2d\n", __FUNCTION__, sId+1, eId+1, maxValue - minValue);
+	return maxValue - minValue;
+}
+
+#elif 0
 const int NM = 50'000 + 5; // 최대 타워 개수 
 const int MM = 5'000 + 5; // map 크기 
 const int BS = 50; // 블록 크기
 const int BC = 100;
 struct Node {
-	int r, c, color, deleted;
-} node[NM]; int ndx; // 타워 좌표 저장
-int m[MM][MM]; // 0 = 없음, 1~5 = 색깔
-vector<int> tower[BC][BC][6]; // 색깔별 타워 좌표 저장
-unordered_map<int, vector<int>::iterator> idx2iter[6];
+	vector<pii> towers[6];
+} node[BC][BC]; int ndx; // 타워 좌표 저장
 
+int m[MM][MM]; // 0 = 없음, 1~5 = 색깔
+int b[BC][BC][6]; // 색깔별 타워 좌표 저장 
+int c[BC][BC][6];
+int tc = 0; // 타임스탬프
 int N;
 
 void dbg() {
@@ -35,7 +148,7 @@ void dbg() {
 	fff(i, 0, N / BS) {
 		fff(j, 0, N / BS) {
 			fff(k, 0, 5) {
-				for(auto & l: tower[i][j][k]) {
+				for(auto & l: b[i][j][k]) {
 					Node &n = node[l];
 					log("%-8s: [%2d][%2d][%2d] - r:%2d, c:%2d, color:%2d\n", __func__, i,j,k, n.r, n.c, n.color);
 				}
@@ -48,63 +161,63 @@ void dbg() {
 void init(int N) {
 	::N = N;
 	ndx = 0;
-	memset(m, 0, sizeof(m)); // 맵 초기화
+	memset(m, -1, sizeof(m)); // 맵 초기화 
+	tc = 0;
 	ff(i,0,BC) {
 		ff(j,0,BC) {
 			ff(c,0,6) {
-				idx2iter->clear();
-				tower[i][j][c].clear();
+				//b[i][j][c].clear();
 			}
 		}
 	}	
-}
+} 
+
 void buildTower(int mRow, int mCol, int mColor) {
+	mRow--; mCol--; // 0-based index
 	
-	node[ndx] = { mRow, mCol, mColor, 0};
-	tower[mRow / BS][mCol / BS][0].push_back(ndx); 
-	tower[mRow / BS][mCol / BS][mColor].push_back(ndx);	
-
-	idx2iter[0][ndx] = --tower[mRow / BS][mCol / BS][0].end();
-	idx2iter[mColor][ndx] = --tower[mRow / BS][mCol / BS][mColor].end();
-
-	m[mRow][mCol] = ndx;
-	ndx++;
+	node[mRow / BS][mCol / BS].towers[mColor].push_back({ mRow, mCol });
 
 	log("%-8s(%2d, %2d, %2d)\n", __FUNCTION__, mRow, mCol, mColor);
 }
-
 void removeTower(int mRow, int mCol) {
-    int idx = m[mRow][mCol];
-    Node& n = node[idx];
 
-    // 1️⃣ 전체 리스트에서 iterator로 삭제
-    tower[n.r / BS][n.c / BS][0].erase(idx2iter[0][idx]);
-    idx2iter[0].erase(idx);   // map에서도 제거
+	mRow--; mCol--; // 0-based index
+	int idx = m[mRow][mCol];
+	if (idx == -1) return;   // 타워 없으면 그냥 리턴
 
-    // 2️⃣ 색상 리스트에서 iterator로 삭제
-    tower[n.r / BS][n.c / BS][n.color].erase(idx2iter[n.color][idx]);
-    idx2iter[n.color].erase(idx);
+	Node& n = node[idx];
 
-    // 3️⃣ 맵 & 노드 정보 정리
-    m[mRow][mCol] = 0;
-    n.deleted = 1; // 혹시 countTower 같은 데서 필요할 수 있음
+	// 전체 버킷에서 삭제
+	//removeFromVector(b[n.r / BS][n.c / BS][0], n.posA, true);
+	//vector<int>& vecA = b[n.r / BS][n.c / BS][0];
+	//vecA.erase(remove(vecA.begin(), vecA.end(), idx), vecA.end()); // posA 위치에서 삭제
+	//vecA.erase(vecA.begin() + n.posA); // posA 위치에서 삭제
 
-    log("%-8s(%2d, %2d)\n", __FUNCTION__, mRow, mCol);
+	// 색깔 버킷에서 삭제
+	//removeFromVector(b[n.r / BS][n.c / BS][n.color], n.posB, false);
+	//vector<int>& vecB = b[n.r / BS][n.c / BS][n.color];
+	//vecB.erase(remove(vecB.begin(), vecB.end(), idx), vecB.end()); // posB 위치에서 삭제
+	//vecB.erase(vecB.begin() + n.posB); // posA 위치에서 삭제
+
+	// 후처리
+	m[mRow][mCol] = -1;
+	n.deleted = 1;
 }
 
-int countTower(int mRow, int mCol, int mColor, int mDis) {
 
+int countTower(int mRow, int mCol, int mColor, int mDis) {
+	mRow--; mCol--; // 0-based index
 	dbg();
 	int count = 0; 
 	int br = mRow / BS;
 	int bc = mCol / BS;
 
+
 	for (rint i = max(0, br - 1); i <= min(BC - 1, br + 1); i++) {
 		for (rint j = max(0, bc - 1); j <= min(BC - 1, bc + 1); j++) {
-			for (auto& idx : tower[i][j][mColor]) {
-				Node& n = node[idx];
-				if (n.deleted) continue;
-				
+			for (auto& idx : b[i][j][mColor]) {
+				Node& n = node[idx];			
+				if (m[n.r][n.c] == -1) continue;
 				if (n.r - mDis <= mRow && mRow <= n.r + mDis && n.c - mDis <= mCol && mCol <= n.c + mDis) {
 					count++;
 				}
@@ -116,35 +229,111 @@ int countTower(int mRow, int mCol, int mColor, int mDis) {
 	log("%-8s(%2d, %2d, %2d, %2d)\t\tret=%2d\n", __FUNCTION__, mRow, mCol, mColor, mDis, ret);
 	return ret;
 }
+int dr[] = { 0, 1, 0, -1 };
+int dc[] = { 1, 0, -1, 0 };
+int visited[MM][MM]; // 방문 여부
+//bool isValied(int br, int bc) {	return 0 <= br && br <= N/BC && 0 <= bc && bc <= N/BC; }
+bool isValied(int br, int bc) {		return 0 <= br && br < BC && 0 <= bc && bc < BC;   }
 
-int getClosest(int mRow, int mCol, int mColor) {
+int bfs(int mRow, int mCol, int mColor) {
+	mRow--; mCol--; // 0-based index
 
-	dbg(); 
+	tc++;
 	int br = mRow / BS;
 	int bc = mCol / BS;
+
+	//memset(visited, 0, sizeof(visited));
+	visited[br][bc] = tc; // 시작점 방문 처리
 	
-	int minDistance = INF;
-	for (rint d = 0; d < 2 * BC; ++d) {		
-		for (rint i = max(0, br - d); i <= min(BC - 1, br + d); i++) {
-			for (rint j = max(0, bc - d); j <= min(BC - 1, bc + d); j++) {
-				for (auto& idx : tower[i][j][mColor]) {
-					Node& n = node[idx];
-					if (n.deleted) continue;
-					int dis = abs(n.r - mRow) + abs(n.c - mCol);
-					if (minDistance > dis) {
-						minDistance = dis;
-					}
+	queue<pii> q;
+
+	q.push({ br, bc });
+
+	int layer = 0, minDistance = INF; // 현재 레이어	
+	while (!q.empty()) {
+		int qs = q.size(); 
+		while (qs--) {
+			 
+			int cr = q.front().first;
+			int cc = q.front().second;
+			q.pop(); 
+
+			for (auto& idx : b[cr][cc][mColor]) {
+				Node& n = node[idx];
+				if (m[n.r][n.c] == -1) continue;
+				int distance = abs(mRow - n.r) + abs(mCol - n.c);
+				if (minDistance > distance) {
+					minDistance = distance; // 최소 거리 갱신
+				}
+			}
+
+			ff(i, 0, 4) { // 상하좌우 탐색
+				int nr = cr + dr[i];
+				int nc = cc + dc[i];
+				if (isValied(nr, nc) && visited[nr][nc] != tc) {
+					visited[nr][nc] = tc; // 방문 처리
+					q.push({ nr, nc }); // 다음 블록으로 이동
 				}
 			}
 		}
 
-		if (minDistance != INF && minDistance < 2 * d * BC) {
-			break;
+		if( minDistance != INF && minDistance < (layer - 2) * BS ) {
+			return minDistance; // 현재 레이어보다 작은 거리가 있으면 끝내기
 		}
 
+		layer++;
+	}
+	return minDistance == INF ? -1 : minDistance;
+}
+//          
+int dy[] = { -1, 1, 1, -1 };
+int dx[] = { 1, 1, -1, -1 };
+int getClosest(int mRow, int mCol, int mColor) {
+	dbg();
+	
+	int ret = bfs(mRow, mCol, mColor);
+	
+	log("%-8s(%2d, %2d, %2d)\t\t\tret=%2d\n", __FUNCTION__, mRow, mCol, mColor, ret);
+	return ret;
+
+
+	/*=======================================================*/
+
+	int br = mRow / BS;
+	int bc = mCol / BS;
+
+	int maxD = 2 * BC + 1;
+	int minDistance = INF;
+	int distance;
+	for (rint d = 1; d <= maxD; ++d) {
+
+		if ( minDistance <= (d - 2 ) * BS  ) {
+			return minDistance; // 현재 레이어보다 작은 거리가 있으면 끝내기
+		}
+
+		int y = br;		//시작점
+		int x = bc - d;	//시작점
+
+		// 4방향 탐색
+		for (rint i = 0; i < 4; ++i) {			
+			for(rint k = 0; k < d; ++k) {				
+				if ( isValied(y, x) ) {	
+					for(auto & idx : b[y][x][mColor]) {
+						Node& n = node[idx];
+						int distance = abs(mRow - n.r) + abs(mCol - n.c);
+						if (minDistance > distance) {
+							minDistance = distance; // 최소 거리 갱신
+						}
+					}
+				}
+				y += dy[i];
+				x += dx[i];
+
+			}
+		}
 	}
 
-	int ret = minDistance == INF ? -1 : minDistance;
+	//int ret = (minDistance == INF) ? -1 : minDistance;
 	log("%-8s(%2d, %2d, %2d)\t\t\tret=%2d\n", __FUNCTION__, mRow, mCol, mColor, ret);
 	return ret;
 }
