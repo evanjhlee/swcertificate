@@ -16,6 +16,90 @@ using namespace std;
 #define INF 987654321
 
 #if 1    
+/*3. 각 테스트 케이스에서 sow() 함수의 호출 횟수는 최대 100,000이다.
+4. 각 테스트 케이스에서 water() 함수의 호출 횟수는 최대 10,000이다.
+5. 각 테스트 케이스에서 harvest() 함수의 호출 횟수는 최대 10,000이다. */
+const int NM = 100'000 + 5; // 최대 농장 개수
+const int BS = 100; // 블록 크기
+const int BC = 10; // 블록 개수 (1000 / 100)
+
+int gtime[3], N, m[1'000][1'000];;
+struct Node { int time, row, col, category, growth; } node[NM]; int ndx;
+vector<int> b[BC][BC]; // 블록별 카테고리별 인덱스 저장
+
+void init(int N, int mGrowthTime[]) {
+	::N = N;
+	ff(i, 0, 3) {
+		gtime[i] = mGrowthTime[i]; // 성장 시간 초기화
+	}
+}
+
+int sow(int mTime, int mRow, int mCol, int mCategory) {
+	int ret = 0;
+	if (!m[mRow][mCol]) {
+		ndx++;
+		node[ndx] = { mTime, mRow, mCol, mCategory, 0 }; // 성장 시간 설정
+
+		m[mRow][mCol] = ndx; // 농장 위치에 인덱스 저장
+
+		b[mRow / BS][mCol / BS].push_back(ndx); // 블록에 인덱스 추가
+
+		ret = 1; // 성공적으로 심었으므로 인덱스 반환
+	}
+	return ret;
+}
+
+int water(int mTime, int G, int mRow, int mCol, int mHeight, int mWidth) {
+
+	int idx = m[mRow][mCol];
+	Node& n = node[idx];
+	n.growth += G; // 성장도 증가
+
+	return 0;
+}
+
+int harvest(int mTime, int L, int mRow, int mCol, int mHeight, int mWidth) {
+	int ret = 0;
+
+	int sr = mRow / BS;
+	int sc = mCol / BS;
+	int er = (mRow + mHeight - 1) / BS;
+	int ec = (mCol + mWidth - 1) / BS;
+
+	vector<int> v;
+
+	for (rint i = sr; i <= er; ++i) {
+		for (rint j = sc; j <= ec; ++j) {
+			for(auto & idx : b[i][j]) {
+				Node& n = node[idx];
+				if (mRow <= n.row && n.row < mRow + mHeight && mCol <= n.col && n.col < mCol + mWidth) {
+					int growth = n.growth + (mTime - n.time) / gtime[n.category]; // 성장도 증가
+					if (n.growth < L) {
+						return 0;
+					}
+					ret++;
+					v.push_back(idx); // 수확할 농장 인덱스 저장
+				}
+			}
+		}
+	}
+
+
+	for (auto idx : v) {
+		Node& n = node[idx];
+		m[n.row][n.col] = 0; // 농장 제거
+		// 블록에서 인덱스 제거
+		auto& vv = b[n.row / BS][n.col / BS];
+		vv.erase(remove(vv.begin(), vv.end(), idx));
+	}
+
+	return ret;
+
+	 
+
+}
+
+#elif 0
 /*2. 각 테스트 케이스에서 subscribe() 함수의 호출 횟수는 15,000 이하이다.
 3. 각 테스트 케이스에서 unsubscribe() 함수의 호출 횟수는 15,000 이하이다.
 4. 각 테스트 케이스에서 count() 함수의 호출 횟수는 15,000 이하이다.
