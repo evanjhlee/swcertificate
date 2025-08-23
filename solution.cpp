@@ -8,7 +8,13 @@
 #include <cstring>
 #include <set>
 using namespace std;
-#define log(...)  //do { fprintf(stderr, __VA_ARGS__); } while (0)
+#if 1
+#define log(...)  do { fprintf(stderr, __VA_ARGS__); } while (0)
+#define dbg()  _dbg() 
+#else 
+#define log(...)   
+#define dbg()  
+#endif 
 #define rint register int
 #define ff(i, a, b) for (rint i = (a); i < (b); ++i)
 #define fff(i, a, b) for (rint i = (a); i <= (b); ++i)
@@ -16,6 +22,347 @@ using namespace std;
 #define INF 987654321
 
 #if 1    
+const int NM = 10000 + 5; // 최대 농장 개수
+struct Node {
+	int id, pr;
+} node[NM];
+
+int b[NM], pos[NM], c;
+
+void myswap(int i, int j) {
+	swap(b[i], b[j]);
+	pos[b[i]] = i;
+	pos[b[j]] = j;
+}
+bool cmp(int nodeIdx1, int nodeIdx2) {
+	Node& n1 = node[nodeIdx1];
+	Node& n2 = node[nodeIdx2];
+	return n1.pr != n2.pr ? n1.pr > n2.pr : n1.id < n2.id; // 우선순위 내림차순, id 오름차순
+}
+void clear() {
+	c = 0;
+	memset(b, 0, sizeof(b));
+	memset(pos, -1, sizeof(pos));
+}
+bool empty() {
+	return c == 0;
+}
+int top() {
+	return b[1];
+}
+
+void up(int child) {
+	while (child > 1) {
+		int parent = child / 2;
+		if (cmp(b[child], b[parent])) {
+			myswap(child, parent);
+			child = parent;
+		}
+		else {
+			break;
+		}
+	}
+}
+void down(int parent) {
+	while (parent * 2 <= c) {
+		int child = parent * 2;
+		if (child + 1 <= c && cmp(b[child + 1], b[child])) {
+			child = child + 1;
+		}
+		if (cmp(b[child], b[parent])) {
+			myswap(child, parent);
+			parent = child;
+		}
+		else {
+			break;
+		}
+	}
+}
+
+void push(int nodeIdx) {
+	b[++c] = nodeIdx;
+	pos[nodeIdx] = c;
+	up(c);
+}
+
+int pop(){
+	int ret = b[1];
+	myswap(1, c);
+	pos[ret] = -1;
+	b[c--] = 0;
+	down(1);
+	return ret;
+}
+
+void erase(int nodeIdx) {
+	int idx = pos[nodeIdx];
+	if (idx == -1) return; // 이미 삭제된 노드
+	myswap(idx, c);
+	pos[nodeIdx] = -1;
+	b[c--] = 0;
+	up(idx);
+	down(idx);
+}
+
+int main() {
+
+	srand((unsigned int)time(NULL));
+
+	vector<int> v;
+	ff(i,0,30) {
+		int id = rand() % 100;
+		int pr = rand() % 100;
+		node[i] = { id, pr };
+		log("[%2d] {%2d %2d}\n", i, id, pr);
+		v.push_back(i);
+		push(i);
+	}
+
+	for (auto& i : v) {
+		if ( node[i].pr < 50 ) {
+			log("erase: [%d] {%2d %2d}\n", i, node[i].id, node[i].pr);
+			//erase(i.first);
+			erase(i);
+		}
+	}
+
+	while(!empty()) {
+		int idx = pop();
+		Node& n = node[idx];
+		log("pop: {%2d %2d}\n", n.id, n.pr);
+	}
+
+	
+
+	return 1;
+}
+
+#elif 0
+/*
+1. set + erase() + unordered_map
+2. vector + swap + pop_back()
+3. set + delete + unordered_map
+
+2. 각 테스트 케이스에서 add() 함수의 호출 횟수는 8,000 이하이다.
+3. 각 테스트 케이스에서 remove() 함수의 호출 횟수는 1,700 이하이다.
+4. 각 테스트 케이스에서 announce() 함수의 호출 횟수는 300 이하이다.  */
+const int NM = 8000 + 5; 
+
+struct Node { int st, en; } node[NM]; int ndx;
+vector<int> v;	// 단순 저장
+unordered_map<int, int> id2ndx;
+unordered_map<int, int> where; // 인덱스 위치 저장
+
+void _dbg() {
+	for(auto & i : v) {
+		Node& n = node[i];
+		log("%8s idx=%2d, st=%2d, en=%2d\n", __func__, i, n.st, n.en);
+	}
+	log("\n");
+		
+}
+void init() {
+	ndx = 0;
+	v.clear();
+	id2ndx.clear();
+	where.clear();
+}
+int add(int mId, int mStart, int mEnd) {
+
+	// 이미 존재하는 상태면 기존의 출근 시간을 변경한다.
+	if (id2ndx.find(mId) != id2ndx.end()) 
+	{
+		int idx = id2ndx[mId]; // mId에 해당하는 인덱스 찾기
+		node[idx] = { mStart, mEnd }; // 노드 추가
+	}
+	else 
+	{
+		ndx++;
+		id2ndx[mId] = ndx;
+		node[ndx] = { mStart, mEnd }; // 노드 추가
+		v.push_back(ndx);
+	}
+
+	int ret = v.size(); // 현재 농장 개수 반환
+	log("%8s(%2d, %2d, %d)\t\tret=%2d\n", __func__, mId, mStart, mEnd, ret);
+
+	dbg();
+	return ret;
+}
+int remove(int mId) { 
+	
+	if (id2ndx.find(mId) != id2ndx.end()) {
+		int idx = id2ndx[mId]; // mId에 해당하는 인덱스 찾기
+		id2ndx.erase(mId); // mId와 인덱스 매핑 삭제		
+		v.erase(remove(v.begin(), v.end(), idx), v.end()); // 인덱스 삭제
+	}
+
+	int ret = v.size(); // 현재 농장 개수 반환
+	log("%8s(%2d)\t\t\tret=%2d\n", __func__, mId, ret);
+
+	dbg();
+	return ret;
+}
+  
+
+int announce(int mDuration, int M) { 
+
+	int ret = -1; // 초기값
+	/*
+	priority_queue<pii, vector<pii>, greater<pii>> pq;
+
+	for (auto& i : v) {
+		Node& n = node[i];
+		int start = n.st;
+		int end = n.en - (mDuration - 1);
+		//if (start >= end) continue; // 유효하지 않은 시간 범위는 무시
+		if (start <= end) {
+			pq.push({ start, +1 });
+			pq.push({ end + 1 , -1 });
+		}
+	}
+	*/
+	//////////////////
+	//vector<pii> tmp;
+	//while (!pq.empty()) {
+	//	auto p = pq.top();
+	//	pq.pop();
+	//	tmp.push_back(p);
+	//	log("%8s time=%2d, valu=%2d\n", __func__, p.first, p.second);
+	//}
+	//log("\n");
+
+	//for (auto& i : tmp) {
+	//	pq.push(i); // 다시 pq에 넣기
+	//}
+	////////////////////
+
+
+	sort(v.begin(), v.end(), [](int a, int b) {
+		return node[a].st < node[b].st; // 시작 시간 기준으로 오름차순 정렬
+		});
+
+
+	int cnt = 0;
+	//while (!pq.empty()) {
+	for (auto& i : v) {
+		int time = node[i].st; // 시작 시간
+		int valu = pq.top().second;
+		pq.pop();
+
+		cnt += valu;
+
+		if ( cnt >= M) {			
+			int  ret = time; // M개 이상의 농장이 있는 시간
+			log("%8s(%2d, %2d)\t\tret=%2d\n", __func__, mDuration, M, ret);
+			return ret; // M개 이상의 농장이 있는 시간 반환
+		}
+	}
+
+	log("%8s(%2d, %2d)\t\tret=%2d\n", __func__, mDuration, M, ret);
+	dbg();
+	return ret;
+}
+#elif 0
+/*
+1. set + erase() + unordered_map
+2. vector + swap + pop_back()
+3. set + delete + unordered_map
+
+2. 각 테스트 케이스에서 add() 함수의 호출 횟수는 8,000 이하이다.
+3. 각 테스트 케이스에서 remove() 함수의 호출 횟수는 1,700 이하이다.
+4. 각 테스트 케이스에서 announce() 함수의 호출 횟수는 300 이하이다.  */
+const int NM = 10000 + 5; // 최대 농장 개수
+
+struct Node { int id, st, en, de; } node[NM];
+struct cmp {
+	bool operator()(const int & a, const int &b) const {
+		return node[a].st != node[b].st ? node[a].st < node[b].st : a < b; // 시작 시간 기준으로 오름차순 정렬, 동일 시간일 경우 인덱스 기준으로 내림차순
+	}
+};
+set<int, cmp> s;
+unordered_map<int, int> id2idx; int ndx;
+
+void dbg() {
+	for(auto&i: s) {
+		Node& n = node[i];
+		log("%8s idx=%2d, id=%2d, st=%2d, en=%2d, de=%2d\n", __func__, i, n.id, n.st, n.en, n.de);
+	}
+}
+void init() {
+	s.clear();
+	ndx = 0;
+	id2idx.clear();
+}
+int add(int mId, int mStart, int mEnd) {
+	
+	if (id2idx.find(mId) != id2idx.end()) {
+		// 이미 존재하는 상태면 기존의 출근 시간을 변경한다. 
+		int idx = id2idx[mId]; 
+		s.erase(idx); // 인덱스 삭제
+
+		node[idx] = { mId, mStart, mEnd, 0 }; // 
+		s.insert(idx); // 인덱스 추가
+		
+	}
+	else {
+
+		ndx++;
+		id2idx[mId] = ndx; // mId와 인덱스 매핑
+		node[ndx] = { mId, mStart, mEnd, 0 }; // 
+		s.insert(ndx); // 인덱스 추가		
+	}
+
+	int ret = s.size(); // 현재 농장 개수 반환
+	log("%8s(%2d, %2d, %d)\t\tret=%2d\n", __func__, mId, mStart, mEnd, ret);
+
+	//dbg();
+	return ret;
+}
+int remove(int mId) {
+	if (id2idx.find(mId) != id2idx.end()) {
+		s.erase(id2idx[mId]); // 인덱스 삭제
+		id2idx.erase(mId); // mId와 인덱스 매핑 삭제
+	}
+	int ret = s.size();
+	log("%8s(%2d)\t\t\tret=%2d\n", __func__, mId, ret);
+
+	//dbg();
+	return ret;
+}
+int announce(int mDuration, int M) {
+	int ret = -1; 
+	for (auto& i : s) {
+		int cnt = 0;
+		for (auto& j : s) {
+
+			Node& ni = node[i];
+			Node& nj = node[j];
+
+			int start = ni.st;
+			int end = ni.st + mDuration - 1;
+
+			if (start >= end) continue;
+
+			if (nj.st >= end) break;
+
+			if (nj.st <= start && end <= nj.en) {
+				cnt++;
+				if (cnt  >= M ) {
+					ret = nj.st;
+					log("%8s(%2d, %2d, %2d, %2d)\t\tret=%2d\n", __func__, mDuration, M, start, end, ret);
+
+					dbg();
+					return nj.st;  
+				}
+			}
+		}
+	}
+	log("%8s(%2d, %2d)\t\tret=%2d\n", __func__, mDuration, M, ret);
+	//dbg();
+	return ret;
+}
+#elif 0
 /*3. 각 테스트 케이스에서 sow() 함수의 호출 횟수는 최대 100,000이다.
 4. 각 테스트 케이스에서 water() 함수의 호출 횟수는 최대 10,000이다.
 5. 각 테스트 케이스에서 harvest() 함수의 호출 횟수는 최대 10,000이다. */
@@ -32,6 +379,25 @@ void init(int N, int mGrowthTime[]) {
 	ff(i, 0, 3) {
 		gtime[i] = mGrowthTime[i]; // 성장 시간 초기화
 	}
+
+
+	vector<int> map[8];
+
+	ff(i,0,8)		map[i].clear();
+
+	ff(i, 0, 8) {
+		ff(j, 0, 20) {			
+			map[i].push_back(j);
+		}
+	}
+
+	ff(i, 0, 8) {
+		ff(j, 0, 20) {
+			map[i].push_back(j);
+		}
+	}
+
+
 }
 
 int sow(int mTime, int mRow, int mCol, int mCategory) {
@@ -5533,7 +5899,9 @@ struct priority_queue
 	void push(T val)
 	{
 		int c = ++sz;
-		for (; c > 0 && val < heap[c / 2]; c /= 2) heap[c] = heap[c / 2];
+		for (; c > 0 && val < heap[c / 2]; c /= 2) 
+			heap[c] = heap[c / 2];
+
 		heap[c] = val;
 	}
 	T top() { return heap[1]; }
