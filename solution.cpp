@@ -1,4 +1,4 @@
-﻿ 
+﻿
 #include <iostream>
 #include <vector>
 #include <queue>
@@ -6,6 +6,7 @@
 #include <string>
 #include <algorithm>
 #include <cstring>
+#include <list>
 #include <set>
 using namespace std;
 #if 1
@@ -20,8 +21,905 @@ using namespace std;
 #define fff(i, a, b) for (rint i = (a); i <= (b); ++i)
 #define pii pair<int, int>
 #define INF 987654321
+/*
+struct Node {
+	int id, like, timestamp;
+	struct Node* next, * prev;
+}node[100'001];
+struct List {
+	Node* pHead = new Node;
+	Node* pTail = new Node;
+	void link(Node* f, Node* b) {
+		f->next = b;
+		b->prev = f;
+	}
+	void initialize() {
+		link(pHead, pTail);
+	}
+	bool isEmpty() {
+		return pHead->next == pTail;
+	}
+	void erase(Node* node) {
+		link(node->prev, node->next);
+	}
+	void insert_back(Node* node) {
+		link(pTail->prev, node);
+		link(node, pTail->next);
+	}
+	void splice(List* list) {
+		if (isEmpty())	return;
+		link(pTail->prev, list->pHead->next);
+		link(list->pTail->prev, pTail);
+		list->initialize();
+	}
+}list[1'001];
+*/
 
 #if 1    
+/*
+2. 각 테스트 케이스에서 add() 함수의 호출 횟수는 10,000 이하이다.
+3. 각 테스트 케이스에서 erase() 함수의 호출 횟수는 3,000 이하이다.
+4. 각 테스트 케이스에서 find() 함수의 호출 횟수는 15,000 이하이다.
+5. 각 테스트 케이스에서 getIndex() 함수의 호출 횟수는 15,000 이하이다.
+  N : 초기에 전자 사전에 등록된 단어의 수 (10 ≤ N ≤ 30,000)
+  mWordList : 초기에 등록된 단어들 (1 ≤ |mWordList[]| ≤ 8, |a|는 문자열 a의 길이를 의미한다.)
+  */
+#define MAX_L				(8)
+#define AM					(26)
+
+
+struct RESULT
+{
+	int success;
+	char word[MAX_L + 1];
+};
+
+const int NM = 30'000 + 10'000 + 5;
+
+struct Node {
+	char child[AM];
+	int endCount, sub;
+	Node() {
+		endCount = sub = 0;
+		memset(child, -1, sizeof(child));
+	}
+}node[NM]; int ndx;
+
+int newNode() {
+	node[ndx] = Node();
+	ndx++;
+}
+
+struct Trie {
+	int root;
+	int total;
+
+	void init() {
+		ndx = 0; 
+		total = 0; 
+		root = newNode();		
+	}
+
+	bool insert(const char *s) {
+		int u = root;
+		for (rint i = 0; s[i]; ++i) {
+			int d = s[i] - 'a';
+			if (node[u].child[d] == -1) {
+				node[u].child[d] = newNode();
+			}
+			u = node[u].child[d];
+			node[u].sub++;
+		}
+		node[u].endCount++;
+		total++;
+		return true;
+	}
+
+	bool remove(const char* s) {
+		int u = root;
+		for (rint i = 0; s[i]; ++i) {
+			int d = s[i] - 'a';
+			if (node[u].child[d] == -1)
+				return false;
+			u = node[u].child[d];
+			node[u].sub--;
+		}
+		node[u].endCount--;
+		total--;
+		return true;
+	}
+
+	bool search(const char* s) {
+		int u = root;
+		for (rint i = 0; s[i]; ++i) {
+			int d = s[i] - 'a';
+			if (node[u].child[d] == -1)
+				return false;
+			u = node[u].child[d];
+		}
+		return node[u].endCount > 0;
+	}
+
+	int getIndexFirst(const char* s) {
+		int rank = 0;
+		int u = root;
+		for (rint i = 0; s[i]; ++i) {
+			// 접두사를 따라 내려오면서 앞에서 완성된 단어의 개수를 더해준다. 
+			rank += node[u].endCount;
+
+			int d = s[i] - 'a';
+			for (rint c = 0; c < d; ++c) {
+				int v = node[u].child[c];
+				if (v != -1) {
+					rank += node[v].sub + node[v].endCount;
+				}
+			}
+
+			u = node[u].child[d];
+		}				
+		// 자기를 포함 +1
+		return rank + 1 ;
+	}
+
+	char* find(const char* s, int mIndex) {
+		int rank = 0;
+		int u = root;
+		//for (rint i = 0; s[i]; ++i) 
+		{
+			
+			
+			//if (node[u].endCount + node[u].sub < mIndex) return nullptr;
+
+			int d = s[0] - 'a';
+
+			for (rint c = 0; c < d; ++c) {
+				int v = node[u].child[c];
+				if (v != -1) {
+
+					if (node[v].endCount + node[v].sub < mIndex) return nullptr;
+					rank += node[v].sub + node[v].endCount;
+				}
+			}
+
+			u = node[u].child[d];
+		}
+		// 자기를 포함 +1
+		return rank + node[u].endCount;
+	}
+
+}trie;
+
+
+
+void init(int N, char mWordList[][MAX_L + 1])
+{
+	trie.init(); 
+}
+
+int add(char mWord[])
+{
+	return trie.insert(mWord);
+}
+
+int erase(char mWord[])
+{
+	return trie.remove(mWord);
+}
+
+RESULT find(char mInitial, int mIndex)
+{
+	RESULT res;
+
+	res.success = -1;
+	res.word[0] = '\0';
+
+	return res;
+}
+
+int getIndex(char mWord[])
+{
+	return -1;
+}
+
+
+#elif 0
+/*
+2. 1 Line Editor 의 끝은 1 Line Editor 에 저장된 문자열의 마지막 문자 오른쪽 칸을 의미한다.
+3. 1 Line Editor 에 저장된 문자열에서 연이어 있는 언더바('_')의 길이는 최대 10 이다.
+4. 각 테스트 케이스에서 단어 하나의 길이는 최대 40 이다.
+5. 각 테스트 케이스에서 1 Line Editor 에 저장되어 있는 단어의 개수는 최대 20,000 이다.
+6. 각 테스트 케이스에서 1 Line Editor 에 저장된 문자열의 길이는 최대 200,000 이다.
+7. 각 테스트 케이스에서 putString() 함수의 호출 횟수는 최대 40,000 이다.
+8. 각 테스트 케이스에서 getWord() 함수의 호출 횟수는 최대 2,000 이다.*/
+const int NM = 200'000 + 5 ;
+
+struct Node {
+	char c;
+	Node* prev, * next;
+}node[NM]; int nodeCnt;
+Node* getNode(char c) {
+	Node& n = node[nodeCnt++];
+	n = { c, nullptr, nullptr };
+	return &n;
+}
+struct List {
+	Node* head = getNode(-1);
+	Node* tail = getNode(-1);
+	void clear() {
+		link(head, tail);
+	}
+	bool empty() {
+		return head->next == tail;
+	}
+	void link(Node* f, Node* b) {
+		f->next = b;
+		b->prev = f;
+	}
+	void insertBack(Node* n) {
+		link(tail->prev, n);
+		link(n, tail);
+	}
+	void erase(Node* n) {
+		link(n->prev, n->next);
+	}
+	void splice(List* list) {
+		if (empty()) return;
+		link(tail->prev, list->head->next);
+		link(list->tail->prev, tail);
+		list->clear();
+	}
+};
+
+List list;
+
+
+void init()
+{
+	::list.clear();
+}
+
+char putString(char mStr[])
+{
+	return '0';
+}
+
+char getWord(int mX)
+{
+	return '0';
+}
+
+
+#elif 0
+// C++14, gcc-10.3.0, 동적 할당 X
+#include <bits/stdc++.h>
+using namespace std;
+
+static const int AM = 26;         // 알파벳 소문자
+static const int NM = 100001 * 20;  // 최대 노드 수(단어 수 * 평균 길이 정도로 넉넉히)
+
+// -------- 노드/풀 --------
+struct Node {
+	int child[AM]; // -1이면 없음
+	int endCount;  // 이 노드에서 끝나는 단어 수(중복 수)
+	int sub;       // 자식 방향(아래) 서브트리 단어 수 합
+	Node() : endCount(0), sub(0) {
+		for (int i = 0; i < AM; i++) child[i] = -1;
+	}
+};
+Node pool[NM];
+int ndx = 0;
+
+inline int newNode() {
+	if (ndx >= NM) return -1;
+	pool[ndx] = Node();
+	return ndx++;
+}
+inline int idx(char c) { return c - 'a'; }
+inline bool ok(char c) { return 'a' <= c && c <= 'z'; }
+
+// -------- Trie --------
+struct Trie {
+	int root;
+	int total; // 전체 단어 수(중복 포함)
+
+	Trie() { init(); }
+
+	void init() {
+		ndx = 0;
+		root = newNode();
+		total = 0;
+		if (root == -1) { /* 로그/종료는 환경에 맞게 */ }
+	}
+
+	// 존재 확인(정확 일치)
+	bool search(const char* s) const {
+		int u = root;
+		for (int i = 0; s[i]; ++i) {
+			if (!ok(s[i])) return false;
+			int d = idx(s[i]);
+			int v = pool[u].child[d];
+			if (v == -1) return false;
+			u = v;
+		}
+		return pool[u].endCount > 0;
+	}
+
+	// 삽입(중복 허용)
+	bool insert(const char* s) {
+		if (!s || !s[0]) return false;
+		for (int i = 0; s[i]; ++i) if (!ok(s[i])) return false;
+
+		int u = root;
+		for (int i = 0; s[i]; ++i) {
+			int d = idx(s[i]);
+			if (pool[u].child[d] == -1) {
+				int v = newNode();
+				if (v == -1) return false; // 풀 부족
+				pool[u].child[d] = v;
+			}
+			u = pool[u].child[d];
+			pool[u].sub++; // 아래 서브트리 카운트 증가
+		}
+		pool[u].endCount++; // 해당 단어 1개 추가
+		total++;
+		return true;
+	}
+
+	// 삭제(존재하면 1개 제거)
+	bool remove(const char* s) {
+		if (!search(s)) return false;
+		int u = root;
+		for (int i = 0; s[i]; ++i) {
+			int d = idx(s[i]);
+			u = pool[u].child[d];
+			pool[u].sub--; // 내려가며 자식 방향 수 감소
+		}
+		pool[u].endCount--;
+		total--;
+		return true;
+	}
+
+	// 전체 단어 수(중복 포함)
+	int getCount() const { return total; }
+
+	// 사전순: s의 "첫 번째 사본" 1-base 위치 (없으면 -1)
+	int getIndexFirst(const char* s) const {
+		long long rank = 0;
+		int u = root;
+		for (int i = 0; s[i]; ++i) {
+			// 현재 접두사가 단어면 그 개수만큼 먼저 앞에 옴
+			rank += pool[u].endCount;
+
+			int d = idx(s[i]);
+			// s[i]보다 작은 문자들의 모든 서브트리 합산
+			for (int c = 0; c < d; c++) {
+				int v = pool[u].child[c];
+				if (pool[u].child[c] != -1) {
+					rank += pool[v].endCount + pool[v].sub;
+				}
+			}
+			// 다음 문자로 이동
+			u = pool[u].child[d];
+			if (u == -1) return -1; // 단어 없음
+		}
+		// 여기까지 오면 정확히 s 노드. s 자체의 첫 사본은 바로 다음 순번.
+		if (pool[u].endCount == 0) return -1;
+		// 첫 사본 = 지금까지보다 1 더한 위치
+		rank += 1;
+		if (rank > INT_MAX) rank = INT_MAX;
+		return (int)rank;
+	}
+
+	// 사전순: s의 "마지막 사본" 1-base 위치 (없으면 -1)
+	int getIndexLast(const char* s) const {
+		long long rank = 0;
+		int u = root;
+		for (int i = 0; s[i]; ++i) {
+			rank += pool[u].endCount; // 접두사 단어들
+			int d = idx(s[i]);
+			for (int c = 0; c < d; c++) {
+				int v = pool[u].child[c];
+				if (v != -1) rank += pool[v].endCount + pool[v].sub;
+			}
+			int v = pool[u].child[d];
+			if (v == -1) return -1;
+			u = v;
+		}
+		if (pool[u].endCount == 0) return -1;
+		// 마지막 사본 = 첫 사본 + (endCount-1)
+		rank += pool[u].endCount;
+		if (rank > INT_MAX) rank = INT_MAX;
+		return (int)rank;
+	}
+
+	// (옵션) 1-base k번째 단어 반환 (중복 포함). 범위 밖이면 "".
+	string getKth(int k) const {
+		if (k <= 0 || k > total) return "";
+		string s;
+		int u = root;
+		while (true) {
+			// 현재 노드에서 끝나는 단어들 먼저
+			if (pool[u].endCount > 0) {
+				if (k <= pool[u].endCount) return s;
+				k -= pool[u].endCount;
+			}
+			// 자식들을 사전순으로
+			bool moved = false;
+			for (int c = 0; c < AM; c++) {
+				int v = pool[u].child[c];
+				if (v == -1) continue;
+				int block = pool[v].endCount + pool[v].sub;
+				if (k > block) {
+					k -= block;
+				}
+				else {
+					s.push_back(char('a' + c));
+					u = v;
+					moved = true;
+					break;
+				}
+			}
+			if (!moved) return s; // 안전장치
+		}
+	}
+} trie;
+
+// ----------------- 사용 예시 -----------------
+/*
+int main(){
+	ios::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	trie.init();
+	trie.insert("a");
+	trie.insert("an");
+	trie.insert("and");
+	trie.insert("ant");
+	trie.insert("bat");
+	trie.insert("bat");
+	trie.insert("bath");
+	trie.insert("band");
+
+	cout << trie.getCount() << "\n";               // 8
+	cout << trie.getIndexFirst("bat") << "\n";     // "bat"의 첫 사본 위치
+	cout << trie.getIndexLast("bat") << "\n";      // "bat"의 마지막 사본 위치(중복 포함)
+	cout << trie.getIndexFirst("and") << "\n";
+	cout << trie.getKth(1) << "\n";                // 1번째 단어
+	cout << trie.getKth(trie.getCount()) << "\n";  // 마지막 단어
+
+	return 0;
+}
+*/
+
+
+#elif 0 
+/*
+[H2528][Pro] 전기차여행
+N개의 도시가 주어진다. 각 도시는 0부터 N-1까지 ID값을 가진다.
+그리고 각 도시마다 1개의 전기차 충전소가 존재한다. 각 충전소는 단위 시간당 충전량을 가진다.
+도시를 연결하는 단방향 도로가 추가될 때, 해당 도로의 ID와 소요 시간 그리고 전력 소모량이 주어진다.
+M개의 도시에서 전염병이 발생한다. 도시마다 전염병의 발생 시기는 다를 수 있다.
+전염병이 발생한 도시에서 각 도로의 소요 시간이 지나면 인접한 도시에 전염병이 퍼진다.
+이때, 최대 충전 용량이 B인 전기차를 이용해, 출발 도시에 도착 도시까지 이동하는데 필요한 최소 시간을 구하고자 한다.
+최초에 전기차 배터리는 완충 되어 있고, 도중에 배터리가 부족하면 충전소에서 충전해야 한다.
+전염병이 퍼진 도시는 지나 갈 수 없다. 전염병과 동시에 도시에 도착해도 안된다. 그리고 충전 중에 전염병을 만나게 되면 이동할 수 없다.
+(0 --> 2 --> 3 --> 4) 경로로 가는 경우, 18시간이 걸린다. 0번 도시에서 3시간 주행하여 2번 도시에 도착하면 전기차의 배터리는 4가 된다.
+2번 도시에서 4시간 충전하면 전기차의 배터리는 8이 된다. 3시간 주행하여 3번 도시로 이동하면 전기차의 배터리는 0이 된다.
+3번 도시에 3시간 충전하면 전기차의 배터리는 6이 된다. 5시간 주행하여 4번 도시에 도착한다.
+(만약에 출발과 동시에 5번 도시에서 전염병이 발생했다고 하면, 여행 중에 전염병과 만나기 때문에 이 경로로는 이동이 불가능하게 된다.)
+(0 --> 1 --> 2 --> 3 --> 4) 경로로 가는 경우, 17시간이 걸린다. 이 것이 0번 도시에서 4번 도시로 가기 위해 필요한 최소 시간이다.
+0번 도시에서 4시간 주행하여 1번 도시에 도착하면 전기차의 배터리는 7이 된다. 1번 도시에서 1시간 충전하면 전기차의 배터리는 10이 된다.
+1시간 주행하여 2번 도시로 이동하면 전기차의 배터리는 8이 된다. 3시간 주행하여 3번 도시로 이동하면 전기차의 배터리는 0이 된다.
+3번 도시에 3시간 충전하면 전기차의 배터리는 6이 된다. 5시간 주행하여 4번 도시에 도착한다.
+2. 각 테스트 케이스에서 add() 함수의 호출 횟수는 3,000 이하이다
+3. 각 테스트 케이스에서 remove() 함수의 호출 횟수는 900 이하이다.
+4. 각 테스트 케이스에서 cost() 함수의 호출 횟수는 200 이하이다.
+
+1. 전염병 확산 속도는 다이젝스트라로 한다. 왜? 가중치가 있다. 
+2. 여러곳에서 발생한다? 시작도시의 시간이 0이 아니라는 뜻이다. 
+3. 이렇게 하면 어떤 도시의 감염되는 시간을 알수 있다. d[] 배열.
+4. 다음은 시작도시 도착도시의 다익스트라다.
+5. 상태변수를 d[도착도시][배터리량]으로 하고 다익스트라를 돌린다.
+6. 그러면 d[][]에서 가장 빠른 시간이 최소 시간이다. 
+
+
+*/
+/*
+[H2529][Pro] 스마트 팜
+N x N 크기의 격자 모양인 공간에서 자동화 농장을 운영하려고 한다.
+이 문제에서는 농장 내의 위치를(행, 열)로 나타내며, 각 위치에 작물을 심을 수 있다.
+농장에서는 3가지 품종의 작물을 재배하고 있으며, 각 작물은 품종에 따른 성장 시간을 가진다.
+모든 작물은 작물이 ""심어진 시간으로부터 해당 작물 품종의 성장 시간만큼""의 시간이 흐르면 크기가 1만큼 성장한다.단순 계산이다.
+농장에서는 작물의 성장을 돕기 위해 화학 첨가물이 가미된 물을 급수할 수 있으며, 물을 맞은 작물들은 지정된 값만큼 크기가 성장한다.
+효율적인 운영을 위해, 농장은 자동 수확 시스템을 채택하였다.
+자동 수확 시스템은 농장 내 특정 지역을 스캔하여, 대상 지역 내의 모든 작물의 크기가 기준 값을 넘을 경우, 해당 지역의 작물을 전체 수확한다.
+_____N : 농장의 한 변의 길이(10 ≤ N ≤ 1, 000)
+3. 각 테스트 케이스에서 sow() 함수의 호출 횟수는 최대 100, 000이다.
+4. 각 테스트 케이스에서 water() 함수의 호출 횟수는 최대 10, 000이다.
+5. 각 테스트 케이스에서 harvest() 함수의 호출 횟수는 최대 10, 000이다.
+ㅁ 핵심 아이디어
+1. 시간만 주어지면 자란 길이는 산술 계산된다.
+2. 각 작물에 water로 증가되는 길이 변수를 하나 추가 한다. 이 변수
+정리해 보자.
+버킷으로 나눠. 크기는 한 200으로?
+그리고 각 버킷에 작물을 vector push_back 한다?
+water하면 완전 버킷은 그냥 버킷의  G를 증가시키고
+경계면에 속하는 것들은 시간을 역행시켜 작물이 늘어난 것으로 하도록 한다.
+그리고 수확도 마찬가지 만일 버킨 전체가 포함되면 마지막 심은 작물에 G를 더하고 시간만큰 성장도 더해서 가능 여부를 판단한다.
+
+경계면은 그냥 ㅆ쨍으로 계산한다. ..
+
+모든 자료 구조는 작물 종류(3개)로 나눠서 관리 한다.
+*/
+
+
+
+#elif 0 
+
+struct Point {
+	int score, y,
+}
+void foo()
+{
+	static const int score[] = { 0,0,0,1,4,9 };
+	int x, int y;
+	int xx = x, int yy = y;
+	int shape = board[y][x];
+
+	int xlen = 1, ylen = 1;
+	int nx, ny;
+
+
+	nx = x - 1;
+	while (nx >= 0 && board[y][nx] == shape) {
+		xlen++;
+		nx--;
+	}
+
+	nx = x + 1;
+	while (nx < 8 && board[y][nx] == shape) {
+		xlen++;
+		nx++;
+	}
+
+	ny = y - 1;
+	while (ny >= 0 && board[ny][x] == shape) {
+		ylen++;
+		ny--;
+	}
+
+	ny = y + 1;
+	while (ny < 8 && board[ny][x] == shape) {
+		ylen++;
+		ny++;
+	}
+
+	if ( xlen )
+
+
+
+
+
+
+
+	// --- 가로: 좌 ---
+	for (int nx = x - 1; nx >= 0 && board[y][nx] == shape; --nx) ++xlen;
+	// --- 가로: 우 ---
+	for (int nx = x + 1; nx < N && board[y][nx] == shape; ++nx) ++xlen;
+
+	// --- 세로: 위 ---
+	for (int ny = y - 1; ny >= 0 && board[ny][x] == shape; --ny) ++ylen;
+	// --- 세로: 아래 ---
+	for (int ny = y + 1; ny < N && board[ny][x] == shape; ++ny) ++ylen;
+}
+
+
+}
+
+#elif 0
+
+/*
+3. 각 테스트 케이스에서 enter() 함수의 호출 횟수는 70,000 이하이다.
+4. 각 테스트 케이스에서 pullout() 함수의 호출 횟수는 40,000 이하이다.
+5. 각 테스트 케이스에서 search() 함수의 호출 횟수는 50,000 이하이다.
+6. 각 함수를 호출할 때 전달되는 mTime 값은 호출될 때마다 증가한다.
+*/
+const int NM = 26 + 5;
+
+struct RESULT_E
+{
+	int success;
+	char locname[5];
+};
+
+struct RESULT_S
+{
+	int cnt;
+	char carlist[5][8];
+}; 
+
+priority_queue<pii, vector<pii>, greater<pii>> pq;
+
+int get4digit(char c[]) {
+	return
+		(c[0] - '0') * 1000 +
+		(c[1] - '0') * 100 +
+		(c[2] - '0') * 10 +
+		(c[3] - '0') * 1;
+}
+struct Car {
+	char regNo[10];
+	int digit4, time, wh_zone, wh_slot;
+	bool isTowed;	
+	void init(char c[]) {
+		strcpy(regNo, c);
+		digit4 = get4digit(c);
+	}
+} car[NM]; int cdx;
+struct cmp {
+	bool operator()(const int& a, const int& b) const {
+		return car[a].time != car[b].time ? car[a].time < car[b].time :	a < b;
+	}
+};
+unordered_map<string, int> na2cdx; 
+set<int, cmp> parking[10000];
+unordered_map<int, set<int>::iterator> cdx2iter;
+
+struct Lot {
+	int freeSize;
+	priority_queue<int, vector<int>, greater<int>> freeList;
+	Lot() {
+		freeSize = M;
+		freeList = {};
+	}
+	void init(int M) {
+		ff(i, 0, M) {
+			freeList.push(i);
+		}
+		freeSize = M;
+	}
+	void enter(char mCarNo[]) {
+
+	}
+}slot[26];
+
+int N, M, L;
+void init(int N, int M, int L)
+{
+	::N = N, ::M = M, ::L = L;
+	ff(i, 0, N) {
+		slot[i].init(M);
+	}
+}
+int spacious() {
+	int maxv = -1, int maxi = -1;
+	ff(i, 0, N) {
+		if (maxv < slot[i].freeSize) {
+			maxv < slot[i].freeSize;
+			maxi = i; 
+		}
+	}
+	return maxi;
+}
+RESULT_E enter(int mTime, char mCarNo[])
+{
+	RESULT_E res_e;	res_e.success = -1;	
+	
+	na2cdx[mCarNo] = cdx++;
+	car[cdx].init(mCarNo);
+	Car& c = car[cdx];
+
+	int spaciout_slot = spacious();
+	if (spaciout_slot == -1)
+		return res_e;
+
+
+
+
+	cdx2iter[cdx] = parking[c.digit4].insert(cdx).first;
+
+	return res_e;
+}
+
+int pullout(int mTime, char mCarNo[])
+{
+	return -1;
+}
+
+RESULT_S search(int mTime, char mStr[])
+{
+	RESULT_S res_s;
+
+	res_s.cnt = -1;
+
+	return res_s;
+}
+#elif 0
+/*
+N : 파일 저장소의 크기(25 ≤ N ≤ 25, 000, 000)
+2. 각 테스트 케이스에서 add() 함수의 호출 횟수는 12,000 이하이다.
+3. 각 테스트 케이스에서 remove() 함수의 호출 횟수는 7,000 이하이다.
+4. 각 테스트 케이스에서 count() 함수의 호출 횟수는 1,000 이하이다.
+12000* 1000* 30 
+5. 하나의 파일에서 발생할 수 있는 파일 조각의 최대 개수는 30 이하이다.
+*/
+
+unordered_map<int, vector<pii>> files;
+priority_queue<pii, vector<pii>, greater<pii>> pq;
+int totalSize = 0; 
+void init(int N) {
+	pq.push({ 1,N });
+	totalSize = 0;
+}
+int add(int mId, int mSize) {
+
+	int ret = -1; 
+
+	if (totalSize < mSize) {
+		return ret;
+	}
+
+	totalSize += mSize;
+
+	//int s = 0, e = 0;
+	while (!pq.empty()) {
+		auto cur = pq.top(); 
+		pq.pop();		
+		
+		int s = cur.first;
+
+		while (!pq.empty() && cur.second + 1 == pq.top().first) {
+			cur = pq.top();
+			pq.pop();
+		}
+
+		int e = cur.second;
+
+		files[mId].push_back({ s, min(s + mSize - 1 , e) });
+
+		if (e - s + 1 > mSize) {
+
+			pq.push({ s + mSize, e });
+			break;
+
+		}
+		else if (e - s + 1 == mSize) {
+			break;
+		}
+		else {
+
+			mSize -= e - s + 1;
+
+		}
+
+	}
+}
+
+int remove(int mId) {
+
+	int ret = files[mId].size();
+
+	for (auto& i : files[mId]) {
+		int s = i.first;
+		int e = i.second;
+		pq.push({ s,e });
+	}
+	
+	//files[mId].clear();
+	files.erase(mId);
+}
+int count(int mStart, int mEnd) {
+	
+
+	int ret = 0; 
+	for (auto& i : files) {
+		auto& v = i.second;
+		auto it = lower_bound(v.begin(), v.end(), mStart);
+		if (it != v.end() && it->first < mEnd) {
+			ret++;
+			break;
+		}
+		if (it != v.begin()) {
+			it--;
+			if (it->second >= mStart) {
+				ret++;
+				return;
+			}
+		}
+	}
+
+	return ret;
+
+}
+#elif 0 
+unordered_map<int, unordered_map<int, int>> pic;
+
+vector<pii> v;
+int main() {
+
+	printf("%d \n", v[10][20]);
+
+	return  1;
+ }
+
+#elif 0
+const int NM = 10000 + 5; // 최대 농장 개수
+struct Node {
+	int id, pr;
+} node[NM];
+
+int b[NM], pos[NM], c;
+/*
+* b[heap_index] = node_index
+* pos[node_index] = heap_index
+*/
+void myswap(int i, int j) {
+	swap(b[i], b[j]);
+	pos[b[i]] = i;
+	pos[b[j]] = j;
+}
+bool cmp(int nodeIdx1, int nodeIdx2) {
+	Node& n1 = node[nodeIdx1];
+	Node& n2 = node[nodeIdx2];
+	return n1.pr != n2.pr ? n1.pr > n2.pr : n1.id < n2.id;
+}
+void clear() {
+	c = 0;
+}
+bool empty() {
+	return c == 0;
+}
+int top() {
+	return b[1];
+}
+void up(int child) {
+	while (child > 1) {
+		int parent = child / 2;
+		if ( cmp(parent,))
+	}
+}
+void down(int parent) {
+}
+void push(int nodeIdx) {
+}
+int pop() {
+}
+void erase(int nodeIdx) {
+}
+int main() {
+
+	srand((unsigned int)time(NULL));
+
+	vector<int> v;
+	ff(i, 0, 30) {
+		int id = rand() % 100;
+		int pr = rand() % 100;
+		node[i] = { id, pr };
+		log("[%2d] {%2d %2d}\n", i, id, pr);
+		v.push_back(i);
+		push(i);
+	}
+
+	for (auto& i : v) {
+		if (node[i].pr < 50) {
+			log("erase: [%d] {%2d %2d}\n", i, node[i].id, node[i].pr);
+			//erase(i.first);
+			erase(i);
+		}
+	}
+
+	while (!empty()) {
+		int idx = pop();
+		Node& n = node[idx];
+		log("pop: {%2d %2d}\n", n.id, n.pr);
+	}
+
+
+
+	return 1;
+}
+
+#elif 0
 const int NM = 10000 + 5; // 최대 농장 개수
 struct Node {
 	int id, pr;
