@@ -3,90 +3,62 @@
 #endif
 
 #include <stdio.h>
-#include <string.h>
 
-#define CMD_INIT		(100)
-#define CMD_ADD			(200)
-#define CMD_ERASE		(300)
-#define CMD_FIND		(400)
-#define CMD_GET_INDEX	(500)
+extern void init(int N, int mCharge[], int K, int mId[], int sCity[], int eCity[], int mTime[], int mPower[]);
+extern void add(int mId, int sCity, int eCity, int mTime, int mPower);
+extern void remove(int mId);
+extern int cost(int B, int sCity, int eCity, int M, int mCity[], int mTime[]);
 
-#define MAX_N			(30000)
-#define MAX_L			(8)
+/////////////////////////////////////////////////////////////////////////
 
-struct RESULT
-{
-	int success;
-	char word[MAX_L + 1];
-};
+#define MAX_N 500
+#define MAX_M 5
+#define MAX_K 4000
+#define CMD_INIT 100
+#define CMD_ADD 200
+#define CMD_REMOVE 300
+#define CMD_COST 400
 
-extern void init(int N, char mWordList[][MAX_L + 1]);
-extern int add(char mWord[]);
-extern int erase(char mWord[]);
-extern RESULT find(char mInitial, int mIndex);
-extern int getIndex(char mWord[]);
+static bool run() {
+	int q;
+	scanf("%d", &q);
 
-static char mWordList[MAX_N][MAX_L + 1];
-
-static bool run()
-{
-	int Q, N, mIndex;
-
-	int ret = -1, ans;
-
-	RESULT res;
-
-	char mWord[MAX_L + 1];
-
-	scanf("%d", &Q);
-
+	int n, m, k, b;
+	int mChargeArr[MAX_N], mIdArr[MAX_K], sCityArr[MAX_K], eCityArr[MAX_K], mTimeArr[MAX_K], mPowerArr[MAX_K];
+	int mCityArr[MAX_M];
+	int mId, sCity, eCity, mTime, mPower;
+	int cmd, ans, ret = 0;
 	bool okay = false;
 
-	for (int q = 0; q < Q; ++q)
-	{
-		int cmd;
+	for (int i = 0; i < q; ++i) {
 		scanf("%d", &cmd);
-		switch (cmd)
-		{
+		switch (cmd) {
 		case CMD_INIT:
-			scanf("%d", &N);
-			for (int i = 0; i < N; ++i)
-				scanf("%s", mWordList[i]);
-			init(N, mWordList);
 			okay = true;
+			scanf("%d %d", &n, &k);
+			for (int j = 0; j < n; ++j) {
+				scanf("%d", &mChargeArr[j]);
+			}
+			for (int j = 0; j < k; ++j) {
+				scanf("%d %d %d %d %d", &mIdArr[j], &sCityArr[j], &eCityArr[j], &mTimeArr[j], &mPowerArr[j]);
+			}
+			init(n, mChargeArr, k, mIdArr, sCityArr, eCityArr, mTimeArr, mPowerArr);
 			break;
 		case CMD_ADD:
-			scanf("%s", mWord);
-			ret = add(mWord);
-			scanf("%d", &ans);
-			if (ret != ans)
-				okay = false;
+			scanf("%d %d %d %d %d", &mId, &sCity, &eCity, &mTime, &mPower);
+			add(mId, sCity, eCity, mTime, mPower);
 			break;
-		case CMD_ERASE:
-			scanf("%s", mWord);
-			ret = erase(mWord);
-			scanf("%d", &ans);
-			if (ret != ans)
-				okay = false;
+		case CMD_REMOVE:
+			scanf("%d", &mId);
+			remove(mId);
 			break;
-		case CMD_FIND:
-			scanf("%s %d", mWord, &mIndex);
-			res = find(mWord[0], mIndex);
-			scanf("%d", &ans);
-			if (res.success != ans)
-				okay = false;
-			if (ans)
-			{
-				scanf("%s", mWord);
-				if (strcmp(res.word, mWord) != 0)
-					okay = false;
+		case CMD_COST:
+			scanf("%d %d %d %d %d", &b, &sCity, &eCity, &ans, &m);
+			for (int j = 0; j < m; ++j) {
+				scanf("%d %d", &mCityArr[j], &mTimeArr[j]);
 			}
-			break;
-		case CMD_GET_INDEX:
-			scanf("%s", mWord);
-			ret = getIndex(mWord);
-			scanf("%d", &ans);
-			if (ret != ans)
+			ret = cost(b, sCity, eCity, m, mCityArr, mTimeArr);
+			if (ans != ret)
 				okay = false;
 			break;
 		default:
@@ -94,20 +66,17 @@ static bool run()
 			break;
 		}
 	}
-
 	return okay;
 }
 
-int main()
-{
+int main() {
 	setbuf(stdout, NULL);
-	  freopen("sample_input.txt", "r", stdin);
+		freopen("sample_input.txt", "r", stdin);
 
-	int TC, MARK;
+	int T, MARK;
+	scanf("%d %d", &T, &MARK);
 
-	scanf("%d %d", &TC, &MARK);
-	for (int tc = 1; tc <= TC; ++tc)
-	{
+	for (int tc = 1; tc <= T; tc++) {
 		int score = run() ? MARK : 0;
 		printf("#%d %d\n", tc, score);
 	}
