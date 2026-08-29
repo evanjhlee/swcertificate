@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>알고리즘 노트: 반개방 구간 모델 & 사각형 접촉 연산</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        h1 {
+            color: #1a73e8;
+            border-bottom: 2px solid #1a73e8;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #202124;
+            margin-top: 30px;
+            border-left: 4px solid #1a73e8;
+            padding-left: 10px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f3f4;
+            font-weight: 600;
+        }
+        code {
+            background-color: #f1f3f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #d93025;
+        }
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .highlight {
+            background-color: #e8f0fe;
+            border-left: 4px solid #1a73e8;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>알고리즘 복습 노트: 격자 사각형 및 접촉 판정</h1>
+
+    <div class="card">
+        <h2>1. 반개방 구간 모델 (Half-Open Interval)</h2>
+        <p>알고리즘 문제 및 표준 라이브러리에서 직사각형 영역을 정의할 때 주로 사용하는 좌표 체계입니다.</p>
+        
+        <ul>
+            <li><strong>표현 방식:</strong> 좌상단 $(x_1, y_1)$ ~ 우하단 $(x_2, y_2)$</li>
+            <li><strong>실제 차지하는 셀 범위:</strong> $x_1 \le x < x_2$, $y_1 \le y < y_2$</li>
+            <li><strong>핵심 특징:</strong> 우하단 끝점 $(x_2, y_2)$ 좌표 자체는 **포함하지 않는 경계선(Vertex)** 역할을 함.</li>
+        </ul>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>형태</th>
+                    <th>좌표 예시</th>
+                    <th>실제 차지하는 격자 셀 ($m[y][x]$)</th>
+                    <th>크기 계산 formula</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1행 사각형 (세로 1칸)</td>
+                    <td><code>(0, 0) ~ (3, 1)</code></td>
+                    <td><code>m[0][0]</code>, <code>m[0][1]</code>, <code>m[0][2]</code> (총 3칸)</td>
+                    <td>$(3 - 0) \times (1 - 0) = 3$</td>
+                </tr>
+                <tr>
+                    <td>1열 사각형 (가로 1칸)</td>
+                    <td><code>(2, 1) ~ (3, 5)</code></td>
+                    <td><code>m[1][2]</code>, <code>m[2][2]</code>, <code>m[3][2]</code>, <code>m[4][2]</code> (총 4칸)</td>
+                    <td>$(3 - 2) \times (5 - 1) = 4$</td>
+                </tr>
+                <tr>
+                    <td>1x1 사각형</td>
+                    <td><code>(2, 3) ~ (3, 4)</code></td>
+                    <td><code>m[3][2]</code> (총 1칸)</td>
+                    <td>$(3 - 2) \times (4 - 3) = 1$</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>2. 기존 테두리 배열 채우기 방식의 문제점 및 해결책</h2>
+        
+        <h3>기존 코드 버그 원인</h3>
+        <ul>
+            <li><strong>주석과 좌표 축 불일치:</strong> $x$축과 $y$축 인덱스가 바뀌어 테두리가 엇갈려 칠해짐.</li>
+            <li><strong>역방향 루프 조건 오류:</strong> <code>for(int x = x2 - 1; x <= x1; x--)</code>와 같이 감소 루프에서 조건식을 <code><=</code>로 설정하여 무한 루프 또는 오작동 발생 (올바른 식: <code>x >= x1</code>).</li>
+            <li><strong>Read/Write 충돌:</strong> 테두리를 칠하는 도중 자기 자신의 미처 채우지 않은 칸을 외부 인접 셀로 오인하는 문제.</li>
+        </ul>
+
+        <div class="highlight">
+            <strong>해결책:</strong> 배열을 칠하기(Write) 전에 <strong>외각 1칸 궤적을 먼저 검사(Read)</strong>한 뒤, 테두리를 정방향(<code>++</code>)으로만 칠하면 순서나 예외 처리 문제에서 완전히 자유로워짐.
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>3. O(1) 기하학적 구간 겹침 알고리즘 (추천 대안)</h2>
+        <p>2차원 배열 $m[][]$에 테두리를 일일이 그리지 않고, 좌표 비교만으로 두 사각형이 맞닿은 변의 길이를 즉시 구하는 방식입니다. ($K=8,000$개일 때 전체 비교 횟수 약 640만 번으로 수십 ms 내 수행 가능)</p>
+
+        <h3>① 축 일치 판별 조건 ( 등가 비교 )</h3>
+        <p>두 사각형 $A, B$의 경계선 좌표 하나가 완벽히 일치해야 상/하/좌/우로 붙어있을 수 있습니다.</p>
+        <ul>
+            <li><code>A.y2 == B.y1</code> : A의 아래쪽 변과 B의 위쪽 변이 붙음</li>
+            <li><code>A.y1 == B.y2</code> : A의 위쪽 변과 B의 아래쪽 변이 붙음</li>
+            <li><code>A.x2 == B.x1</code> : A의 오른쪽 변과 B의 왼쪽 변이 붙음</li>
+            <li><code>A.x1 == B.x2</code> : A의 왼쪽 변과 B의 오른쪽 변이 붙음</li>
+        </ul>
+
+        <h3>② 구간 겹침 길이 계산 공식</h3>
+        <p>축이 일치할 때, 나머지 방향 구간 $[A_{start}, A_{end}]$와 $[B_{start}, B_{end}]$의 겹침 길이는 아래와 같습니다.</p>
+        <div class="highlight">
+            $$\text{Overlapping Length} = \min(A_{end}, B_{end}) - \max(A_{start}, B_{start})$$
+            * 이 값이 <strong>양수($> 0$)</strong>일 때만 해당 길이만큼 면을 접하고 있는 것임.
+        </div>
+
+        <h3>최종 C++ 구현 코드</h3>
+<pre><code>struct Cell {
+    int x1, y1, x2, y2;
+};
+
+// 두 사각형 A와 B가 접해 있는 변의 총 길이를 계산하는 함수
+int getContactLength(const Cell& A, const Cell& B) {
+    int totalLen = 0;
+
+    // 1. 위/아래로 맞닿은 경우 (y축 경계선 일치) -> x축 겹침 계산
+    if (A.y2 == B.y1 || A.y1 == B.y2) {
+        int overlapX = min(A.x2, B.x2) - max(A.x1, B.x1);
+        if (overlapX > 0) totalLen += overlapX;
+    }
+
+    // 2. 좌/우로 맞닿은 경우 (x축 경계선 일치) -> y축 겹침 계산
+    if (A.x2 == B.x1 || A.x1 == B.x2) {
+        int overlapY = min(A.y2, B.y2) - max(A.y1, B.y1);
+        if (overlapY > 0) totalLen += overlapY;
+    }
+
+    return totalLen; // 0이면 닿지 않음, >0 이면 닿은 길이
+}
+</code></pre>
+    </div>
+
+</body>
+</html>
