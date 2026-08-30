@@ -11,8 +11,12 @@
             --card-bg: #ffffff;
             --text-color: #202124;
             --border-color: #dadce0;
-            --code-bg: #282c34;
-            --inline-code-bg: #f1f3f4;
+            /* 가독성을 높인 밝은 코드 블록 테마 */
+            --code-bg: #f6f8fa;
+            --code-border: #d0d7de;
+            --code-text: #24292f;
+            --inline-code-bg: #eff1f3;
+            --inline-code-text: #0550ae;
         }
         body {
             font-family: 'Pretendard', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
@@ -68,19 +72,28 @@
             padding: 3px 6px;
             border-radius: 4px;
             font-family: 'Consolas', 'Courier New', monospace;
-            color: #d93025;
+            color: var(--inline-code-text);
             font-size: 0.92em;
+            font-weight: 600;
         }
         pre {
             background-color: var(--code-bg);
-            color: #abb2bf;
+            color: var(--code-text);
+            border: 1px solid var(--code-border);
             padding: 18px;
             border-radius: 8px;
             overflow-x: auto;
             font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-size: 0.92rem;
+            line-height: 1.6;
         }
+        /* C++ 구문 강조 라이트 컬러 스타일 */
+        .kw { color: #cf222e; font-weight: bold; } /* keyword (int, struct, for 등) */
+        .type { color: #953800; font-weight: bold; } /* type (vector, Cell 등) */
+        .fn { color: #8250df; } /* function */
+        .cm { color: #57606a; font-style: italic; } /* comment */
+        .num { color: #0550ae; } /* number */
+
         .highlight {
             background-color: #e8f0fe;
             border-left: 4px solid var(--primary-color);
@@ -191,10 +204,10 @@
 
         <div class="highlight">
             <p><strong>삼항 연산자 변환:</strong></p>
-            <pre><code>int len = min(rect.x2, x2) - max(rect.x1, x1);
-l += (len > 0) ? len : 0;</code></pre>
+<pre><span class="kw">int</span> len = <span class="fn">min</span>(rect.x2, x2) - <span class="fn">max</span>(rect.x1, x1);
+l += (len &gt; <span class="num">0</span>) ? len : <span class="num">0</span>;</pre>
             <p><strong>std::max를 활용한 1줄 최적화:</strong></p>
-            <pre><code>l += max(0, min(rect.x2, x2) - max(rect.x1, x1));</code></pre>
+<pre>l += <span class="fn">max</span>(<span class="num">0</span>, <span class="fn">min</span>(rect.x2, x2) - <span class="fn">max</span>(rect.x1, x1));</pre>
         </div>
     </div>
 
@@ -210,7 +223,7 @@ l += (len > 0) ? len : 0;</code></pre>
 
         <div class="warning">
             <strong>❌ 교정 2: <code>unionSet</code> 내부 `find()` 중복 호출</strong><br>
-            `unionSet(u, v)` 구현체 내부에서 루트 노드를 조회를 수행하므로 외부에서 `unionSet(cellId, find(rect.id))`처럼 전달할 필요 없음.<br>
+            `unionSet(u, v)` 구현체 내부에서 루트 노드 조회를 수행하므로 외부에서 `unionSet(cellId, find(rect.id))`처럼 전달할 필요 없음.<br>
             <strong>👉 해결:</strong> `unionSet(cellId, rect.id);`로 직접 ID 전달.
         </div>
     </div>
@@ -218,63 +231,63 @@ l += (len > 0) ? len : 0;</code></pre>
     <!-- 5. 최종 완성된 C++ 코드 -->
     <div class="card">
         <h2>5. 최종 완성 C++ 최적화 코드</h2>
-<pre><code>#include &lt;iostream&gt;
-#include &lt;vector&gt;
-#include &lt;algorithm&gt;
+<pre><span class="cm">#include &lt;iostream&gt;</span>
+<span class="cm">#include &lt;vector&gt;</span>
+<span class="cm">#include &lt;algorithm&gt;</span>
 
-using namespace std;
+<span class="kw">using namespace</span> std;
 
-struct Cell {
-    int id;
-    int x1, y1, x2, y2;
-    int area;
+<span class="kw">struct</span> <span class="type">Cell</span> {
+    <span class="kw">int</span> id;
+    <span class="kw">int</span> x1, y1, x2, y2;
+    <span class="kw">int</span> area;
 };
 
-vector&lt;Cell&gt; cell;
-int L = 2; // 그룹 병합 최소 접촉 길이
+<span class="type">vector</span>&lt;<span class="type">Cell</span>&gt; cell;
+<span class="kw">int</span> L = <span class="num">2</span>; <span class="cm">// 그룹 병합 최소 접촉 길이</span>
 
-int parent[8005];
+<span class="kw">int</span> parent[<span class="num">8005</span>];
 
-int findSet(int u) {
-    if (u == parent[u]) return u;
-    return parent[u] = findSet(parent[u]);
+<span class="kw">int</span> <span class="fn">findSet</span>(<span class="kw">int</span> u) {
+    <span class="kw">if</span> (u == parent[u]) <span class="kw">return</span> u;
+    <span class="kw">return</span> parent[u] = <span class="fn">findSet</span>(parent[u]);
 }
 
-void unionSet(int u, int v) {
-    int rootU = findSet(u);
-    int rootV = findSet(v);
-    if (rootU != rootV) parent[rootU] = rootV;
+<span class="kw">void</span> <span class="fn">unionSet</span>(<span class="kw">int</span> u, <span class="kw">int</span> v) {
+    <span class="kw">int</span> rootU = <span class="fn">findSet</span>(u);
+    <span class="kw">int</span> rootV = <span class="fn">findSet</span>(v);
+    <span class="kw">if</span> (rootU != rootV) parent[rootU] = rootV;
 }
 
-int addCell(int cellId, int x1, int y1, int x2, int y2) {
-    int size = (x2 - x1) * (y2 - y1);
+<span class="kw">int</span> <span class="fn">addCell</span>(<span class="kw">int</span> cellId, <span class="kw">int</span> x1, <span class="kw">int</span> y1, <span class="kw">int</span> x2, <span class="kw">int</span> y2) {
+    <span class="kw">int</span> size = (x2 - x1) * (y2 - y1);
     
-    // 기존 사각형들과 1:1 접촉 검사
-    for (auto &rect : cell) {
-        int l = 0;
+    <span class="cm">// 기존 사각형들과 1:1 접촉 검사</span>
+    <span class="kw">for</span> (<span class="kw">auto</span> &amp;rect : cell) {
+        <span class="kw">int</span> l = <span class="num">0</span>;
         
-        // 1. 위/아래면 접합부 (y축 경계 일치 -> x축 겹침 길이)
-        if (y1 == rect.y2 || y2 == rect.y1) {
-            l += max(0, min(rect.x2, x2) - max(rect.x1, x1));
+        <span class="cm">// 1. 위/아래면 접합부 (y축 경계 일치 -&gt; x축 겹침 길이)</span>
+        <span class="kw">if</span> (y1 == rect.y2 || y2 == rect.y1) {
+            l += <span class="fn">max</span>(<span class="num">0</span>, <span class="fn">min</span>(rect.x2, x2) - <span class="fn">max</span>(rect.x1, x1));
         }
         
-        // 2. 좌/우면 접합부 (x축 경계 일치 -> y축 겹침 길이)
-        if (x1 == rect.x2 || x2 == rect.x1) {
-            l += max(0, min(rect.y2, y2) - max(rect.y1, y1));
+        <span class="cm">// 2. 좌/우면 접합부 (x축 경계 일치 -&gt; y축 겹침 길이)</span>
+        <span class="kw">if</span> (x1 == rect.x2 || x2 == rect.x1) {
+            l += <span class="fn">max</span>(<span class="num">0</span>, <span class="fn">min</span>(rect.y2, y2) - <span class="fn">max</span>(rect.y1, y1));
         }
                 
-        // 3. 접촉 길이가 L 이상이면 Union-Find 그룹 병합
-        if (l >= L) {
-            unionSet(cellId, rect.id);
+        <span class="cm">// 3. 접촉 길이가 L 이상이면 Union-Find 그룹 병합</span>
+        <span class="kw">if</span> (l &gt;= L) {
+            <span class="fn">unionSet</span>(cellId, rect.id);
         }
     }    
     
-    // 검사 완료 후 목록 추가
-    cell.push_back({ cellId, x1, y1, x2, y2, size });
+    <span class="cm">// 검사 완료 후 목록 추가</span>
+    cell.<span class="fn">push_back</span>({ cellId, x1, y1, x2, y2, size });
 
-    return 0;
+    <span class="kw">return</span> <span class="num">0</span>;
 }
-</code></pre>
+</pre>
     </div>
 
     <!-- 6. 스택 메모리 세팅 팁 -->
